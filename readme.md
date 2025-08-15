@@ -2,7 +2,7 @@
 
 ## 概述
 
-[UnifiedInference](file:///mnt/petrelfs/zenghuazheng/workspace/vlm_utils/unified_inference.py#L15-L278) 是一个统一的推理引擎，支持多种推理后端，包括 `transformer`、`vllm_offline` 和 `vllm_api`。它支持单张图片推理和批量推理两种模式，适用于视觉语言模型的推理任务。
+[UnifiedInference](file:///mnt/petrelfs/zenghuazheng/workspace/vlm_utils/unified_inference.py#L15-L278) 是一个统一的推理引擎，支持多种推理后端，包括 `transformer`、`vllm_offline` 和 `vllm_api`。它支持单张图片推理和批量推理两种模式，适用于视觉语言模型的推理任务，目前仅支持单图推理。
 
 ## 命令行接口
 
@@ -15,7 +15,7 @@ python unified_inference.py --engine_type [引擎类型] [模式相关参数]
 ### 通用参数
 
 - `--engine_type`：指定推理引擎类型，可选值包括 `transformer`、`vllm_offline`、`vllm_api`
-- `--parser`：指定解析器类型，用于处理模型输出，无则直接返回模型输出
+- `--parser`：指定解析器类型，用于处理模型输出，无则直接返回模型输出,详见[paser docment](./parser/Parser.md)
 - `--model_name`：模型名称或路径,vllm_offline、transformer为模型名称或路径，vllm_api为vllm部署的服务model_name
 - `--system_prompt`：系统提示词文件路径
 - `--user_prompt`：用户提示词文件路径
