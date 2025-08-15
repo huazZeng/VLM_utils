@@ -28,6 +28,8 @@ class VLLMAPIEngine(InferenceEngineBase):
         self.model_name = model_name
         self.api_key = api_key
         self.concurrency = kwargs.get("concurrency", 64)
+        self.max_tokens = kwargs.get("max_tokens", 1024)
+        self.temperature = kwargs.get("temperature", 0.0)
         self.client = OpenAIChatClient(
             base_url=self.base_url,
             api_key=self.api_key,
@@ -66,8 +68,8 @@ class VLLMAPIEngine(InferenceEngineBase):
         ]
         return {
             "messages": messages,
-            "temperature": 0.0,
-            "max_tokens": 1024
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens
         }
 
     # ======== 异步接口 ========

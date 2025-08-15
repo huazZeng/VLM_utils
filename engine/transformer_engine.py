@@ -32,6 +32,9 @@ class TransformerEngine(InferenceEngineBase):
         
         self.device = device
         self.model_name = model_name
+        self.max_tokens = kwargs.get("max_tokens", 1024)
+        self.temperature = kwargs.get("temperature", 0.0)
+        self.skip_special_token = kwargs.get("skip_special_token", False)
         
         print(f"Loading Transformer model: {model_name}")
         config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
@@ -119,7 +122,9 @@ class TransformerEngine(InferenceEngineBase):
             with torch.no_grad():
                 output_ids = self.model.generate(
                     **inputs, 
-                    max_new_tokens=1024,
+                    max_new_tokens=self.max_tokens,
+                    skip_special_tokens=self.skip_special_token,
+                    temperature=self.temperature
                 )
             
             # 解码输出
