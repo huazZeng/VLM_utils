@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from utils.api_infer import OpenAIChatClient
 from .engine_base import InferenceEngineBase
+from tqdm.asyncio import tqdm as async_tqdm  # 用异步版 tqdm
 
 
 class VLLMAPIEngine(InferenceEngineBase):
@@ -95,29 +96,34 @@ class VLLMAPIEngine(InferenceEngineBase):
                 metadata={"model_name": self.model_name, "base_url": self.base_url}
             )
 
+
     async def _batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str, **kwargs) -> List[Dict[str, Any]]:
         concurrency = kwargs.get('concurrency', self.concurrency)
         semaphore = asyncio.Semaphore(concurrency)
 
         async def limited_single_infer(image_path: str):
-            print("limited_single_infer")
             async with semaphore:
                 return await self._single_infer(image_path, system_prompt, user_prompt)
 
         tasks = [limited_single_infer(p) for p in image_paths]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
         processed_results = []
-        for i, r in enumerate(results):
-            if isinstance(r, Exception):
+
+        # 使用 asyncio.as_completed 来实时更新进度
+        for coro in async_tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="推理进度"):
+            try:
+                r = await coro
+                processed_results.append(r)
+            except Exception as e:
+                idx = len(processed_results)
                 processed_results.append(self.create_result_dict(
                     success=False,
-                    error=str(r),
-                    image_path=image_paths[i],
+                    error=str(e),
+                    image_path=image_paths[idx],
                     metadata={"model_name": self.model_name, "base_url": self.base_url}
                 ))
-            else:
-                processed_results.append(r)
+
         return processed_results
+
 
     # ======== 同步接口（安全调用 async） ========
     def single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
