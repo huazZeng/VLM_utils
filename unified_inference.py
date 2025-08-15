@@ -293,16 +293,13 @@ def main():
             raise ValueError("--model_name is required for transformer engine")
         engine_kwargs = {
             "model_name": args.model_name,
-            "device": args.device,
             "skip_special_token": args.skip_special_token,
-            "system_prompt": args.system_prompt
         }
     elif args.engine_type == "vllm_offline":
         engine_kwargs = {
             "model_name": args.model_name or "Qwen/Qwen2.5-VL-3B-Instruct",
             "batch_size": args.batch_size,
             "skip_special_token": args.skip_special_token,
-            "system_prompt": args.system_prompt
         }
     elif args.engine_type == "vllm_api":
         if not args.base_url or not args.model_name:
@@ -314,7 +311,6 @@ def main():
             "concurrency": args.concurrency,
             "max_tokens": args.max_tokens,
             "temperature": args.temperature,
-            "system_prompt": args.system_prompt
         }
 
     # 初始化推理器
