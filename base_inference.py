@@ -15,14 +15,13 @@ class BaseInference(ABC):
     提取transformer和vllm推理器的共同功能
     """
     
-    def __init__(self):
+    def __init__(self, parser: str):
         """初始化基类"""
         self.system_prompt = """
             You are a helpful assistant.
             """
-        
-        # 初始化解析器
-    
+        self.user_prompt = "Describe the image in detail."
+        self.parser =
     def find_image_files(self, folder_path: str) -> List[str]:
         """
         遍历文件夹获取所有图片文件路径
@@ -216,7 +215,7 @@ class BaseCLI:
             argparse.ArgumentParser: 配置好的解析器
         """
         parser = argparse.ArgumentParser(description=description)
-        
+        parser.add_argument("--parser", type=str, help="Parser for inference")
         # 创建子解析器
         subparsers = parser.add_subparsers(dest='mode', help='Inference mode')
         

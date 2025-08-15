@@ -18,7 +18,7 @@ class UnifiedInference(BaseInference):
     基于engine包实现，支持多种推理引擎
     """
     
-    def __init__(self, engine_type: str, **engine_kwargs):
+    def __init__(self, parser: str, engine_type: str, **engine_kwargs):
         """
         初始化统一推理器
         
@@ -26,7 +26,7 @@ class UnifiedInference(BaseInference):
             engine_type: 引擎类型，支持 "transformer", "vllm_offline", "vllm_api"
             **engine_kwargs: 引擎特定的初始化参数
         """
-        super().__init__()
+        super().__init__(parser)
         system_prompt_file = engine_kwargs.get("system_prompt_file", None)
         if system_prompt_file:
             with open(system_prompt_file, "r") as f:
@@ -335,7 +335,7 @@ def main():
         }
 
     # 初始化推理器
-    inference = UnifiedInference(args.engine_type, **engine_kwargs)
+    inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
     
     if args.mode == 'single':
         # 单个推理模式
@@ -349,8 +349,8 @@ def main():
             print(result)
             
             # 可视化（如果指定了save_path）
-            if args.save_path:
-                parsed_dict = inference.parser.parse_to_dict(result)
+            # if args.save_path:
+            #     parsed_dict = inference.parser.parse_to_dict(result)
 
                 
         except FileNotFoundError as e:
