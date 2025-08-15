@@ -349,8 +349,8 @@ def main():
             print(result)
             
             # 可视化（如果指定了save_path）
-            # if args.save_path:
-            #     parsed_dict = inference.parser.parse_to_dict(result)
+            if args.save_path:
+                parsed_dict = inference.parser.parse_to_dict(result)
 
                 
         except FileNotFoundError as e:

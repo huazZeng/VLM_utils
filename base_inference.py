@@ -8,7 +8,7 @@ import os
 import argparse
 from typing import List, Dict, Any, Optional, Union
 from abc import ABC, abstractmethod
-
+from parser.base_parser import BaseParser
 
 class BaseInference(ABC):
     """
@@ -21,7 +21,7 @@ class BaseInference(ABC):
             You are a helpful assistant.
             """
         self.user_prompt = "Describe the image in detail."
-        self.parser =
+        self.parser = BaseParser.create_parser(parser)
     def find_image_files(self, folder_path: str) -> List[str]:
         """
         遍历文件夹获取所有图片文件路径
@@ -125,7 +125,7 @@ class BaseInference(ABC):
             
             # 解析预测结果
             prediction = result["prediction"]
-            parsed_prediction = self.parser.parse_to_dict(prediction)
+            parsed_prediction = self.parser.parse_to_save(prediction)
             
             # 构建完整结果
             complete_result = {
@@ -138,7 +138,7 @@ class BaseInference(ABC):
             # 如果是JSON模式，添加ground truth
             if input_type == "json":
                 ground_truth = result["ground_truth"]
-                parsed_ground_truth = self.parser.parse_to_dict(ground_truth)
+                parsed_ground_truth = self.parser.parse_to_save(ground_truth)
                 complete_result.update({
                     "ground_truth": parsed_ground_truth,
                     "raw_ground_truth": ground_truth
@@ -170,7 +170,7 @@ class BaseInference(ABC):
             
             # 解析预测结果
             prediction = result["prediction"]
-            parsed_prediction = self.parser.parse_to_dict(prediction)
+            parsed_prediction = self.parser.parse_to_save(prediction)
             
             # 构建完整结果
             complete_result = {
@@ -183,7 +183,7 @@ class BaseInference(ABC):
             # 如果是JSON模式，添加ground truth
             if input_type == "json":
                 ground_truth = result["ground_truth"]
-                parsed_ground_truth = self.parser.parse_to_dict(ground_truth)
+                parsed_ground_truth = self.parser.parse_to_save(ground_truth)
                 complete_result.update({
                     "ground_truth": parsed_ground_truth,
                     "raw_ground_truth": ground_truth

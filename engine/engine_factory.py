@@ -79,7 +79,7 @@ class InferenceManager:
         if system_prompt is None:
             system_prompt = self.engine.system_prompt
         if user_prompt is None:
-            user_prompt = "<image>Find the spectral images in the figure"
+            user_prompt = "Describe the image in detail."
         return self.engine.single_infer(image_path, system_prompt, user_prompt)
 
     def batch_infer(self, image_paths: List[str], system_prompt: str = None, 
@@ -87,7 +87,7 @@ class InferenceManager:
         if system_prompt is None:
             system_prompt = self.engine.system_prompt
         if user_prompt is None:
-            user_prompt = "<image>Find the spectral images in the figure"
+            user_prompt = "Describe the image in detail."
         return self.engine.batch_infer(image_paths, system_prompt, user_prompt, **kwargs)
 
     def batch_infer_with_custom_prompts(self, image_paths: List[str], prompts: List[str], 
