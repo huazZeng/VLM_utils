@@ -180,20 +180,6 @@ image_folder/
     └── image3.jpg
 ```
 
-## 🎯 Use Cases
-
-### 1. Spectral Detection
-Specialized parser for detecting and analyzing spectral images in scientific documents.
-
-### 2. Image Classification
-Batch processing of image collections for classification tasks.
-
-### 3. Image Description
-Generating detailed descriptions for image datasets.
-
-### 4. Research Evaluation
-Evaluating model performance on custom datasets.
-
 ## 🔍 Advanced Features
 
 ### Custom Parsers
@@ -228,38 +214,12 @@ inference = OnlineInference("default", "api_chat", **kwargs)
 result = await inference.single_infer(image_path, prompt)
 ```
 
-## 🚨 Error Handling
 
-The framework includes comprehensive error handling:
-- **Graceful Fallbacks**: Automatic fallback from batch to single inference
-- **Input Validation**: Validation of input paths and formats
-- **Engine Errors**: Proper handling of engine-specific errors
-- **Network Issues**: Retry logic for API-based inference
 
-## 📊 Performance
-
-### Optimization Tips
-- Use appropriate batch sizes for your hardware
-- Adjust concurrency levels for API-based inference
-- Enable GPU acceleration for local inference
-- Use `divided` save mode for large datasets
-
-### Memory Management
-- Automatic cleanup of model resources
-- Efficient image loading and processing
-- Configurable batch sizes to control memory usage
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Implement your changes
-4. Add tests if applicable
-5. Submit a pull request
 
 ## 📄 License
 
-[Add your license information here]
+MIT
 
 ## 🆘 Support
 
@@ -270,5 +230,4 @@ For issues and questions:
 4. Include system information and error traces
 
 ---
-
 **Note**: This framework is designed for research and production use cases involving Vision Language Models. Ensure you have appropriate licenses and permissions for the models and APIs you use. 
