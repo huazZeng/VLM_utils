@@ -9,6 +9,7 @@ import argparse
 from typing import List, Dict, Any, Optional, Union
 from abc import ABC, abstractmethod
 from parser.base_parser import BaseParser
+from engine.engine_factory import InferenceEngineFactory
 
 class BaseInference(ABC):
     """
@@ -22,6 +23,7 @@ class BaseInference(ABC):
             """
         self.user_prompt = "Describe the image in detail."
         self.parser = BaseParser.create_parser(parser)
+        self.engine = None  # 子类需要设置engine
     def find_image_files(self, folder_path: str) -> List[str]:
         """
         遍历文件夹获取所有图片文件路径

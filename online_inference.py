@@ -10,7 +10,7 @@ import json
 import os
 from typing import List, Dict, Any
 from base_inference import BaseInference
-from engine.engine_factory import OnlineInferenceManager
+from engine.engine_factory import InferenceEngineFactory
 
 
 class OnlineInference(BaseInference):
@@ -46,8 +46,8 @@ class OnlineInference(BaseInference):
         else:
             self.user_prompt = "Describe the image in detail."
 
-        # 使用推理管理器初始化引擎
-        self.manager = OnlineInferenceManager(engine_type, **engine_kwargs)
+        # 直接初始化推理引擎
+        self.engine = InferenceEngineFactory.create_engine(engine_type, **engine_kwargs)
         self.engine_type = engine_type
         
         print(f"Online inference initialized with engine: {engine_type}")
@@ -64,7 +64,7 @@ class OnlineInference(BaseInference):
             模型输出文本
         """
         try:
-            result = await self.manager.single_infer(
+            result = await self.engine.single_infer(
                 image_path=image_path,
                 system_prompt=self.system_prompt,
                 user_prompt=prompt
@@ -108,13 +108,13 @@ class OnlineInference(BaseInference):
             return results
         
         try:
-            # 使用引擎的batch_infer进行批量推理
+            # 直接使用引擎的batch_infer进行批量推理
             # 对于JSON文件，我们使用默认的prompt，因为每个样本的prompt可能不同
             default_prompt = self.user_prompt
-            batch_results = await self.manager.batch_infer(
+            batch_results = await self.engine.batch_infer(
                 image_paths, 
-                system_prompt=self.system_prompt,
-                user_prompt=default_prompt,
+                self.system_prompt,
+                default_prompt,
             )
             
             # 处理批量推理结果
@@ -131,9 +131,6 @@ class OnlineInference(BaseInference):
                 }
                 results.append(result)
                 
-                # 立即保存单个结果
-                if save_mode == "divided":
-                    self._save_divided_results(result, output_dir, "json")
             
         except Exception as e:
             print(f"Error in batch inference: {e}")
@@ -157,10 +154,6 @@ class OnlineInference(BaseInference):
                     "prediction": prediction
                 }
                 results.append(result)
-                
-                # 立即保存单个结果
-                if save_mode == "divided":
-                    self._save_divided_results(result, output_dir, "json")
         
         return results
     
@@ -181,11 +174,11 @@ class OnlineInference(BaseInference):
         default_prompt = "Describe the image in detail."
         
         try:
-            # 使用引擎的batch_infer进行批量推理
-            batch_results = await self.manager.batch_infer(
+            # 直接使用引擎的batch_infer进行批量推理
+            batch_results = await self.engine.batch_infer(
                 data,  # data就是image_paths列表
-                system_prompt=self.system_prompt,
-                user_prompt=default_prompt,
+                self.system_prompt,
+                default_prompt,
             )
             
             # 处理批量推理结果
@@ -200,10 +193,6 @@ class OnlineInference(BaseInference):
                     "prediction": prediction
                 }
                 results.append(result)
-                
-                # 立即保存单个结果
-                if save_mode == "divided":
-                    self._save_divided_results(result, output_dir, "folder")
             
             
         except Exception as e:
@@ -223,10 +212,6 @@ class OnlineInference(BaseInference):
                     "prediction": prediction
                 }
                 results.append(result)
-                
-                # 立即保存单个结果
-                if save_mode == "divided":
-                    self._save_divided_results(result, output_dir, "folder")
         
         return results
     
@@ -260,7 +245,8 @@ class OnlineInference(BaseInference):
         
         # 根据save_mode保存结果
         if save_mode == "divided":
-            # divided模式已经在循环中保存了每个结果
+            # 保存所有结果到分离的文件
+            self._save_divided_results(results, output_dir, input_type)
             print(f"All individual results saved to: {output_dir}")
         else:  # save_mode == "all"
             # 保存所有结果到一个文件
@@ -281,8 +267,8 @@ def main():
     parser.add_argument("--base_url", type=str, required=True, help="API基础URL")
     parser.add_argument("--model_name", type=str, required=True, help="模型名称")
     parser.add_argument("--api_key", type=str, default="EMPTY", help="API密钥")
-    parser.add_argument("--system_prompt", type=str, help="System prompt for inference")
-    parser.add_argument("--user_prompt", type=str, help="User prompt for inference")
+    parser.add_argument("--system_prompt_file", type=str, help="System prompt for inference")
+    parser.add_argument("--user_prompt_file", type=str, help="User prompt for inference")
     parser.add_argument("--max_tokens", type=int, default=1024, help="Max tokens for inference")
     parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for inference")
     parser.add_argument("--concurrency", type=int, default=64, help="并发数")
@@ -313,10 +299,8 @@ def main():
         "temperature": args.temperature,
     }
     
-    if args.system_prompt:
-        engine_kwargs["system_prompt"] = args.system_prompt
-    if args.user_prompt:
-        engine_kwargs["user_prompt"] = args.user_prompt
+    engine_kwargs["system_prompt_file"] = args.system_prompt_file
+    engine_kwargs["user_prompt_file"] = args.user_prompt_file
 
     # 初始化推理器
     inference = OnlineInference(args.parser, args.engine_type, **engine_kwargs)
