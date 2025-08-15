@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 from tqdm import tqdm
 
 from engine.engine_factory import InferenceManager
-from base_inference import BaseInference, BaseCLI
+from base_inference import BaseInference
 
 class UnifiedInference(BaseInference):
     """
@@ -282,12 +282,40 @@ class UnifiedInference(BaseInference):
 def main():
     """主函数"""
     # 创建解析器
-    parser, single_parser, batch_parser = BaseCLI.create_parser("Unified Model inference for spectral detection")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--parser", type=str, help="Parser for inference")
+    parser.add_argument("--engine_type", type=str, required=True, 
+                       choices=["vllm_offline", "vllm_api"], 
+                       help="Inference engine type")
+    parser.add_argument("--skip_special_token", type=bool, default=False, help="Skip special token for inference")
+    parser.add_argument("--model_name", type=str, help="Model name or path")
+    parser.add_argument("--system_prompt", type=str, help="System prompt for inference")
+    parser.add_argument("--user_prompt", type=str, help="User prompt for inference")
+    parser.add_argument("--max_tokens", type=int, default=1024, help="Max tokens for inference (for vllm_api)")
+    parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for inference (for vllm_api)")
     
+        
+        
+        
+    subparsers = parser.add_subparsers(dest='mode', help='Inference mode')
+        
+        # 单个推理模式
+    single_parser = subparsers.add_parser('single', help='Single inference mode')
+    single_parser.add_argument("--image_path", type=str, required=True, help="Image file path")
+    single_parser.add_argument("--prompt", type=str, default="<image>Find the spectral images in the figure", help="Prompt text")
+    single_parser.add_argument("--save_path", type=str, default=None, help="Save path for visualization")
+        
+        # 批量推理模式
+    batch_parser = subparsers.add_parser('batch', help='Batch inference mode')
+    batch_parser.add_argument("--input_path", type=str, required=True, help="Input path (JSON file or folder)")
+    batch_parser.add_argument("--output_file", type=str, required=True, help="Output file path for inference results")
+    batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="Save mode: 'divided' for separate files, 'all' for single file")
+    batch_parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference")
+        # 创建子解析器
     # 根据引擎类型准备参数
     engine_kwargs = {}
-    
+    args = parser.parse_args()
+
     if args.engine_type == "transformer":
         if not args.model_name:
             raise ValueError("--model_name is required for transformer engine")
@@ -301,17 +329,6 @@ def main():
             "batch_size": args.batch_size,
             "skip_special_token": args.skip_special_token,
         }
-    elif args.engine_type == "vllm_api":
-        if not args.base_url or not args.model_name:
-            raise ValueError("--base_url and --model_name are required for vllm_api engine")
-        engine_kwargs = {
-            "base_url": args.base_url,
-            "model_name": args.model_name,
-            "api_key": args.api_key,
-            "concurrency": args.concurrency,
-            "max_tokens": args.max_tokens,
-            "temperature": args.temperature,
-        }
 
     # 初始化推理器
     inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
@@ -319,8 +336,7 @@ def main():
     if args.mode == 'single':
         # 单个推理模式
         try:
-            BaseCLI.validate_single_args(args)
-            BaseCLI.print_single_info(args)
+            
             print(f"  Engine type: {args.engine_type}")
             
             result = inference.single_infer(args.image_path, args.prompt)
@@ -337,13 +353,8 @@ def main():
             return
         
     elif args.mode == 'batch':
-        # 批量推理模式
-        try:
-            BaseCLI.validate_batch_args(args)
-            BaseCLI.print_batch_info(args)
-            print(f"  Engine type: {args.engine_type}")
-            
-            # 根据引擎类型设置批量参数
+
+        try:     
             batch_kwargs = {}
             if args.engine_type == "vllm_offline":
                 batch_kwargs["batch_size"] = args.batch_size

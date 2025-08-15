@@ -45,13 +45,15 @@ class OpenAIChatClient:
         temperature: float = 0.0,
         max_tokens: int = 512,
     ) -> str:
-        resp = await self.async_client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-
+        try:
+            resp = await self.async_client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as e:
+            print(e)
         return resp.choices[0].message.content
 
     async def chat_many(

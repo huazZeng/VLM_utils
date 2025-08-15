@@ -2,14 +2,14 @@
 
 ## 概述
 
-[UnifiedInference](file:///mnt/petrelfs/zenghuazheng/workspace/vlm_utils/unified_inference.py#L15-L278) 是一个统一的推理引擎，支持多种推理后端，包括 `transformer`、`vllm_offline` 和 `vllm_api`。它支持单张图片推理和批量推理两种模式，适用于视觉语言模型的推理任务，目前仅支持单图推理。
+[Offline_infer](file:///mnt/petrelfs/zenghuazheng/workspace/vlm_utils/offline_infer.py#L15-L278) 是一个统一的推理引擎，支持多种推理后端，包括 `transformer`、`vllm_offline` 和 `vllm_api`。它支持单张图片推理和批量推理两种模式，适用于视觉语言模型的推理任务，目前仅支持单图推理。
 
 ## 命令行接口
 
 该工具使用命令行接口，基本使用格式如下：
 
 ```bash
-python unified_inference.py --engine_type [引擎类型] [模式相关参数]
+python offline_inference.py --engine_type [引擎类型] [模式相关参数]
 ```
 
 ### 通用参数
@@ -46,7 +46,7 @@ python unified_inference.py --engine_type [引擎类型] [模式相关参数]
 使用 `single` 子命令进行单张图片推理：
 
 ```bash
-python unified_inference.py --engine_type [引擎类型] single \
+python offline_inference.py --engine_type [引擎类型] single \
     --image_path [图片路径] \
     --prompt [提示词]
 ```
@@ -57,7 +57,7 @@ python unified_inference.py --engine_type [引擎类型] single \
 
 示例：
 ```bash
-python unified_inference.py --engine_type transformer \
+python offline_inference.py --engine_type transformer \
     --model_name Qwen/Qwen2.5-VL-3B-Instruct \
     single \
     --image_path ./example.jpg \
@@ -69,7 +69,7 @@ python unified_inference.py --engine_type transformer \
 使用 `batch` 子命令进行批量推理：
 
 ```bash
-python unified_inference.py --engine_type [引擎类型] batch \
+python offline_inference.py --engine_type [引擎类型] batch \
     --input_path [输入路径] \
     --output_file [输出文件路径]
 ```
@@ -83,7 +83,7 @@ python unified_inference.py --engine_type [引擎类型] batch \
 
 示例：
 ```bash
-python unified_inference.py --engine_type vllm_offline \
+python offline_inference.py --engine_type vllm_offline \
     --model_name Qwen/Qwen2.5-VL-3B-Instruct \
     batch \
     --input_path ./images_folder \

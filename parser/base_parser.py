@@ -121,3 +121,7 @@ class BaseParser(ABC):
     def get_available_parsers(cls) -> list:
         """Get list of available parser types."""
         return list(cls.get_registry().keys()) 
+    
+if __name__ == "__main__":
+    # Example usage
+    print(BaseParser.get_available_parsers())

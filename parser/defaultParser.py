@@ -1,5 +1,5 @@
-from base_parser import BaseParser
-
+from .base_parser import BaseParser
+from typing import Dict, Any
 class DefaultParser(BaseParser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
