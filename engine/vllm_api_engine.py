@@ -97,8 +97,8 @@ class VLLMAPIEngine(InferenceEngineBase):
             )
 
 
-    async def _batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str, **kwargs) -> List[Dict[str, Any]]:
-        concurrency = kwargs.get('concurrency', self.concurrency)
+    async def _batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str) -> List[Dict[str, Any]]:
+        concurrency = self.concurrency
         semaphore = asyncio.Semaphore(concurrency)
 
         async def limited_single_infer(image_path: str):

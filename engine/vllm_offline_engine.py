@@ -133,7 +133,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
                 metadata={"model_name": self.model_name}
             )
     
-    def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str, **kwargs) -> List[Dict[str, Any]]:
+    def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str) -> List[Dict[str, Any]]:
         """
         批量推理：使用vLLM模型对多张图像进行推理
         
