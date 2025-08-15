@@ -115,9 +115,7 @@ class InferenceEngineBase(ABC):
             标准化的结果字典
         """
         result = {
-            "success": success,
             "prediction": prediction,
             "image_path": image_path,
-            "metadata": metadata or {}
         }
         return result 
