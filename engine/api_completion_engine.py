@@ -11,7 +11,7 @@ from PIL import Image
 from qwen_vl_utils import smart_resize
 from typing import Dict, Any, List
 from tqdm import tqdm
-
+from vllm import  SamplingParams
 from utils.api_infer import OpenAIChatClient
 from .engine_base import InferenceEngineBase
 from tqdm.asyncio import tqdm as async_tqdm  # 用异步版 tqdm
@@ -53,25 +53,45 @@ class VLLMAPIEngine(InferenceEngineBase):
         return f"data:image/jpeg;base64,{encoded}"
 
     def preprocess(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
-        content = [
-            {
-                "type": "image_url",
-                "image_url": {"url": self.image_to_data_uri(image_path)}
-            },
-            {
-                "type": "text",
-                "text": user_prompt
+        """
+        预处理：准备vLLM模型推理所需的输入数据
+        
+        Args:
+            image_path: 图像路径
+            system_prompt: 系统提示词
+            user_prompt: 用户提示词
+            
+        Returns:
+            预处理后的输入数据字典
+        """
+        try:
+            # 加载图像
+            image = self.load_image(image_path)
+            
+            # 创建prompt
+            full_prompt = (
+                "<|im_start|>system\n" + system_prompt + "<|im_end|>\n"
+                "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>"
+                f"{user_prompt}<|im_end|>\n"
+                "<|im_start|>assistant\n"
+            )
+            
+            # 设置采样参数
+            sampling_params = SamplingParams(
+                temperature=0.0,
+                max_tokens=1024,
+                stop=["<|im_end|>"],
+                skip_special_tokens=False
+            )
+            
+            return {
+                "prompt": full_prompt,
+                "multi_modal_data": {"image": image},
+                "sampling_params": sampling_params
             }
-        ]
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": content}
-        ]
-        return {
-            "messages": messages,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens
-        }
+            
+        except Exception as e:
+            raise Exception(f"Preprocessing failed: {e}")
 
     # ======== 异步接口 ========
     async def _single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
