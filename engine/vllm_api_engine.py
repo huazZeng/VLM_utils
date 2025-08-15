@@ -86,14 +86,12 @@ class VLLMAPIEngine(InferenceEngineBase):
                 success=True,
                 prediction=prediction,
                 image_path=image_path,
-                metadata={"model_name": self.model_name, "base_url": self.base_url}
             )
         except Exception as e:
             return self.create_result_dict(
                 success=False,
                 error=str(e),
                 image_path=image_path,
-                metadata={"model_name": self.model_name, "base_url": self.base_url}
             )
 
 
@@ -119,7 +117,6 @@ class VLLMAPIEngine(InferenceEngineBase):
                     success=False,
                     error=str(e),
                     image_path=image_paths[idx],
-                    metadata={"model_name": self.model_name, "base_url": self.base_url}
                 ))
 
         return processed_results

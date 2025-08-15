@@ -175,7 +175,6 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=False,
                         error=str(e),
                         image_path=image_path,
-                        metadata={"model_name": self.model_name}
                     )
                     results.append(error_result)
             
@@ -209,7 +208,6 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=True,
                         prediction=prediction,
                         image_path=image_path,
-                        metadata={"model_name": self.model_name}
                     )
                     results.append(result)
                 
@@ -221,7 +219,6 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=False,
                         error=str(e),
                         image_path=image_path,
-                        metadata={"model_name": self.model_name}
                     )
                     results.append(error_result)
         

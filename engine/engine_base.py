@@ -117,7 +117,6 @@ class InferenceEngineBase(ABC):
         result = {
             "success": success,
             "prediction": prediction,
-            "error": error,
             "image_path": image_path,
             "metadata": metadata or {}
         }

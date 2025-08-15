@@ -135,7 +135,6 @@ class TransformerEngine(InferenceEngineBase):
                 success=True,
                 prediction=prediction,
                 image_path=image_path,
-                metadata={"model_name": self.model_name, "device": self.device}
             )
             
         except Exception as e:
@@ -143,7 +142,6 @@ class TransformerEngine(InferenceEngineBase):
                 success=False,
                 error=str(e),
                 image_path=image_path,
-                metadata={"model_name": self.model_name, "device": self.device}
             )
     
     def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str) -> List[Dict[str, Any]]:
@@ -171,7 +169,6 @@ class TransformerEngine(InferenceEngineBase):
                     success=False,
                     error=str(e),
                     image_path=image_path,
-                    metadata={"model_name": self.model_name, "device": self.device}
                 )
                 results.append(error_result)
         
