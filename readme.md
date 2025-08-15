@@ -61,7 +61,7 @@ python unified_inference.py --engine_type transformer \
     --model_name Qwen/Qwen2.5-VL-3B-Instruct \
     single \
     --image_path ./example.jpg \
-    --prompt "请描述这张图片的内容"
+
 ```
 
 ### 批量推理模式
