@@ -26,27 +26,14 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - **JSON Files**: Structured datasets with images and prompts
 - **Image Folders**: Direct folder traversal for image collections
 - **Single Images**: Individual image inference with custom prompts
+## Route Map
 
-## 📁 Project Structure
+* Accelerate offline inference
+* Support multiple VLM preprocessing methods
+* Development of data distillation tools
+* Development of visualization tools
 
-```
-vlm_utils/
-├── engine/                     # Inference engine implementations
-│   ├── engine_base.py         # Abstract base class for engines
-│   ├── engine_factory.py      # Factory pattern for engine creation
-│   ├── offline_infer/         # Local inference engines
-│   └── online_infer/          # API-based inference engines
-├── parser/                    # Output parsing modules
-│   ├── base_parser.py         # Base parser interface
-│   ├── defaultParser.py       # Default text parser
-│   └── spectralParser.py      # Specialized spectral detection parser
-├── utils/                     # Utility functions
-├── offline_inference.py       # Offline inference entry point
-├── online_infer.py           # Online inference entry point
-├── base_inference.py         # Common inference functionality
-├── run.sh                    # Offline inference example script
-└── run_online_infer.sh       # Online inference example script
-```
+
 
 ## 📖 Usage
 
