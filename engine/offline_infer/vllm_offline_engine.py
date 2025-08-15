@@ -9,8 +9,8 @@ from vllm import LLM, EngineArgs, SamplingParams
 from PIL import Image
 from typing import Dict, Any, List
 from tqdm import tqdm
-
-from .engine_base import InferenceEngineBase
+from utils.data_processor import _prepare_samples
+from engine.engine_base import InferenceEngineBase
 
 
 class VLLMOfflineEngine(InferenceEngineBase):
@@ -88,6 +88,9 @@ class VLLMOfflineEngine(InferenceEngineBase):
         except Exception as e:
             raise Exception(f"Preprocessing failed: {e}")
     
+
+
+
     def single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
         单个推理：使用vLLM模型对单张图像进行推理
@@ -133,7 +136,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
                 metadata={"model_name": self.model_name}
             )
     
-    def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str) -> List[Dict[str, Any]]:
+    def batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理：使用vLLM模型对多张图像进行推理
         
@@ -147,20 +150,20 @@ class VLLMOfflineEngine(InferenceEngineBase):
             推理结果列表
         """
         results = []
-        
+        samples = _prepare_samples(*args)
         # 分批处理数据
-        for batch_start in tqdm(range(0, len(image_paths), self.batch_size), desc="Processing batches"):
-            batch_end = min(batch_start + self.batch_size, len(image_paths))
-            batch_paths = image_paths[batch_start:batch_end]
+        for batch_start in tqdm(range(0, len(samples), self.batch_size), desc="Processing batches"):
+            batch_end = min(batch_start + self.batch_size, len(samples))
+            batch_paths = samples[batch_start:batch_end]
             
             # 准备批量输入
             batch_inputs = []
             batch_indices = []
             
-            for i, image_path in enumerate(batch_paths):
+            for i, sample in enumerate(batch_paths):
                 try:
                     # 预处理
-                    preprocessed_data = self.preprocess(image_path, system_prompt, user_prompt)
+                    preprocessed_data = self.preprocess(sample["image_path"], sample["user_prompt"], sample["system_prompt"])
                     
                     # 添加到批量输入
                     batch_inputs.append({
@@ -175,6 +178,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=False,
                         error=str(e),
                         image_path=image_path,
+                        metadata={"model_name": self.model_name}
                     )
                     results.append(error_result)
             
@@ -208,6 +212,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=True,
                         prediction=prediction,
                         image_path=image_path,
+                        metadata={"model_name": self.model_name}
                     )
                     results.append(result)
                 
@@ -219,6 +224,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
                         success=False,
                         error=str(e),
                         image_path=image_path,
+                        metadata={"model_name": self.model_name}
                     )
                     results.append(error_result)
         

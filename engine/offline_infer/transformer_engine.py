@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForVision2Seq, AutoProcessor, A
 from PIL import Image
 from typing import Dict, Any, List
 from tqdm import tqdm
-
+from utils.data_processor import _prepare_samples
 from .engine_base import InferenceEngineBase
 
 
@@ -135,6 +135,7 @@ class TransformerEngine(InferenceEngineBase):
                 success=True,
                 prediction=prediction,
                 image_path=image_path,
+                metadata={"model_name": self.model_name, "device": self.device}
             )
             
         except Exception as e:
@@ -142,33 +143,37 @@ class TransformerEngine(InferenceEngineBase):
                 success=False,
                 error=str(e),
                 image_path=image_path,
+                metadata={"model_name": self.model_name, "device": self.device}
             )
     
-    def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str) -> List[Dict[str, Any]]:
+    def batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理：使用Transformer模型对多张图像进行推理
         
         Args:
-            image_paths: 图像路径列表
-            system_prompt: 系统提示词
-            user_prompt: 用户提示词
-            **kwargs: 其他参数
+            *args: 可变参数，支持以下三种情况：
+            1. list image_paths, str user_prompt, str system_prompt
+            2. list image_paths, list user_prompts, list system_prompts
+            3. list of dict [{"image_path":..., "user_prompt":..., "system_prompt":...}, ...]
             
         Returns:
             推理结果列表
         """
         results = []
         
-        for i, image_path in enumerate(tqdm(image_paths, desc="Processing images")):
+        samples = _prepare_samples(*args)
+
+        for i, sample in enumerate(tqdm(samples, desc="Processing images")):
             try:
-                result = self.single_infer(image_path, system_prompt, user_prompt)
+                result = self.single_infer(sample["image_path"], sample["user_prompt"], sample["system_prompt"])
                 results.append(result)
             except Exception as e:
                 # 如果单个推理失败，添加错误结果
                 error_result = self.create_result_dict(
                     success=False,
                     error=str(e),
-                    image_path=image_path,
+                    image_path=sample["image_path"],
+                    metadata={"model_name": self.model_name, "device": self.device}
                 )
                 results.append(error_result)
         

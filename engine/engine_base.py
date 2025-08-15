@@ -60,15 +60,15 @@ class InferenceEngineBase(ABC):
         pass
     
     @abstractmethod
-    def batch_infer(self, image_paths: List[str], system_prompt: str, user_prompt: str, **kwargs) -> List[Dict[str, Any]]:
+    def batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理：对多张图像进行推理
         
         Args:
-            image_paths: 图像路径列表
-            system_prompt: 系统提示词
-            user_prompt: 用户提示词
-            **kwargs: 其他参数，如batch_size等
+            *args: 可变参数，支持以下三种情况：
+            1. list image_paths, str user_prompt, str system_prompt
+            2. list image_paths, list user_prompts, list system_prompts
+            3. list of dict [{"image_path":..., "user_prompt":..., "system_prompt":...}, ...]
             
         Returns:
             推理结果列表，每个元素包含：
@@ -76,7 +76,6 @@ class InferenceEngineBase(ABC):
             - image_path: str, 图像路径
             - prediction: str, 模型预测结果
             - error: str, 错误信息（如果失败）
-            - metadata: Dict, 其他元数据
         """
         pass
     
@@ -116,6 +115,7 @@ class InferenceEngineBase(ABC):
         """
         result = {
             "prediction": prediction,
+            "error": error,
             "image_path": image_path,
         }
         return result 

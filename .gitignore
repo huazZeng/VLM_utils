@@ -1,7 +1,8 @@
 .DS_Store
 
 .vscode/
-
+run_online_infer.sh
+run.sh
 dataset/
 models/
 .idea

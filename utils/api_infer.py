@@ -20,7 +20,11 @@ class OpenAIChatClient:
         self.api_key = api_key
         self.model_name = model_name
         self.timeout = timeout
-        self.async_client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout)
+        try:
+            self.async_client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout)
+        except Exception as e:
+            print(f"Failed to initialize AsyncOpenAI client: {e}")
+            raise
 
     async def complete(
         self,
@@ -29,16 +33,19 @@ class OpenAIChatClient:
         max_tokens: int = 512,
         skip_special_tokens: bool = True,
     ) -> str:
-        resp = await self.async_client.completions.create(
-            model=self.model_name,
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            skip_special_tokens=True,
-        )
-        
+        try:
+            resp = await self.async_client.completions.create(
+                model=self.model_name,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                skip_special_tokens=True,
+            )
+            return resp.choices[0].text
+        except Exception as e:
+            print(f"Error in complete: {e}")
+            return ""
 
-        return resp.choices[0].text
     async def chat(
         self,
         messages: List[Dict],
@@ -52,9 +59,10 @@ class OpenAIChatClient:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+            return resp.choices[0].message.content
         except Exception as e:
-            print(e)
-        return resp.choices[0].message.content
+            print(f"Error in chat: {e}")
+            return ""
 
     async def chat_many(
         self,
@@ -63,12 +71,20 @@ class OpenAIChatClient:
         max_tokens: int = 512,
         concurrency: int = 8,
     ) -> List[str]:
-        import asyncio
+        try:
+            import asyncio
 
-        semaphore = asyncio.Semaphore(concurrency)
+            semaphore = asyncio.Semaphore(concurrency)
 
-        async def _one(msgs: List[Dict]):
-            async with semaphore:
-                return await self.chat(msgs, temperature=temperature, max_tokens=max_tokens)
+            async def _one(msgs: List[Dict]):
+                try:
+                    async with semaphore:
+                        return await self.chat(msgs, temperature=temperature, max_tokens=max_tokens)
+                except Exception as e:
+                    print(f"Error in _one: {e}")
+                    return ""
 
-        return await asyncio.gather(*[_one(msgs) for msgs in messages_list]) 
+            return await asyncio.gather(*[_one(msgs) for msgs in messages_list])
+        except Exception as e:
+            print(f"Error in chat_many: {e}")
+            return [""] * len(messages_list)

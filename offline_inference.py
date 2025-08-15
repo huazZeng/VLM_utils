@@ -10,11 +10,11 @@ import argparse
 from typing import List, Dict, Any, Optional
 from tqdm import tqdm
 
-from engine.engine_factory import InferenceManager
+from engine.engine_factory import OfflineInferenceManager
 from base_inference import BaseInference
 
-class UnifiedInference(BaseInference):
-    """
+class OfflineInference(BaseInference):
+    """ 
     基于engine包实现，支持多种推理引擎
     """
     
@@ -45,7 +45,7 @@ class UnifiedInference(BaseInference):
             self.user_prompt = "Describe the image in detail."
 
         # 初始化推理管理器
-        self.manager = InferenceManager(engine_type, **engine_kwargs)
+        self.manager = OfflineInferenceManager(engine_type, **engine_kwargs)
         self.engine_type = engine_type
         
         print(f"Unified inference initialized with engine: {engine_type}")
@@ -65,11 +65,7 @@ class UnifiedInference(BaseInference):
             # 使用推理管理器进行推理
             result = self.manager.single_infer(image_path, system_prompt=self.system_prompt, user_prompt=prompt)
             
-            if result["success"]:
-                return result["prediction"]
-            else:
-                print(f"Error in inference: {result['error']}")
-                return ""
+            return result["prediction"]
                 
         except Exception as e:
             print(f"Error in single inference for {image_path}: {e}")
@@ -120,11 +116,7 @@ class UnifiedInference(BaseInference):
             for i, (sample_idx, batch_result) in enumerate(zip(sample_indices, batch_results)):
                 sample = data[sample_idx]
                 
-                if batch_result["success"]:
-                    prediction = batch_result["prediction"]
-                else:
-                    prediction = ""
-                    print(f"Error in batch inference for sample {sample_idx}: {batch_result['error']}")
+                prediction = batch_result["prediction"]
                 
                 result = {
                     "image_path": sample["images"][0],
@@ -195,11 +187,7 @@ class UnifiedInference(BaseInference):
             for i, batch_result in enumerate(batch_results):
                 image_path = data[i]
                 
-                if batch_result["success"]:
-                    prediction = batch_result["prediction"]
-                else:
-                    prediction = ""
-                    print(f"Error in batch inference for image {i}: {batch_result['error']}")
+                prediction = batch_result["prediction"]
                 
                 result = {
                     "image_path": image_path,
@@ -331,7 +319,7 @@ def main():
         }
 
     # 初始化推理器
-    inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
+    inference = OfflineInference(args.parser, args.engine_type, **engine_kwargs)
     
     if args.mode == 'single':
         # 单个推理模式
