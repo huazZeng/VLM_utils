@@ -216,6 +216,20 @@ class BaseCLI:
         """
         parser = argparse.ArgumentParser(description=description)
         parser.add_argument("--parser", type=str, help="Parser for inference")
+        parser.add_argument("--engine_type", type=str, required=True, 
+                       choices=["transformer", "vllm_offline", "vllm_api"], 
+                       help="Inference engine type")
+    
+        # 添加引擎特定参数
+        parser.add_argument("--skip_special_token", type=bool, default=False, help="Skip special token for inference")
+        parser.add_argument("--model_name", type=str, help="Model name or path")
+        parser.add_argument("--system_prompt", type=str, help="System prompt for inference")
+        parser.add_argument("--user_prompt", type=str, help="User prompt for inference")
+        parser.add_argument("--device", type=str, default="cuda", help="Device to use (for transformer)")
+        parser.add_argument("--base_url", type=str, help="vLLM server base URL (for vllm_api)")
+        parser.add_argument("--api_key", type=str, default="EMPTY", help="API key (for vllm_api)")
+        parser.add_argument("--max_tokens", type=int, default=1024, help="Max tokens for inference (for vllm_api)")
+        parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for inference (for vllm_api)")
         # 创建子解析器
         subparsers = parser.add_subparsers(dest='mode', help='Inference mode')
         
@@ -230,7 +244,9 @@ class BaseCLI:
         batch_parser.add_argument("--input_path", type=str, required=True, help="Input path (JSON file or folder)")
         batch_parser.add_argument("--output_file", type=str, required=True, help="Output file path for inference results")
         batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="Save mode: 'divided' for separate files, 'all' for single file")
-        
+        batch_parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference")
+        batch_parser.add_argument("--concurrency", type=int, default=64, help="Concurrency level for inference (for vllm_api)")
+    
         return parser, single_parser, batch_parser
     
     @staticmethod
