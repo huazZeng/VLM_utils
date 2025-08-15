@@ -9,7 +9,6 @@ import shutil
 from typing import Dict, List, Any, Optional, Union
 from tqdm import tqdm
 
-from vlm_test.vl_detect import VLProcessor
 from .managers import CounterManager, SamplerManager
 
 
