@@ -30,7 +30,7 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 
 - [] Accelerate offline inference
 - [] CLI reorg
-- [] unify the two inference
+- [x] unify the two inference
 - [] Support multiple VLM preprocessing methods
 - [] Development of data distillation tools
 - [] Development of visualization tools
