@@ -19,8 +19,8 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - **vLLM Offline**: High-performance local inference using vLLM framework
 
 #### Online Engines  
-- **API Chat**: OpenAI-compatible chat API endpoints (e.g., GPT-4, Claude)
-- **API Completion**: OpenAI-compatible completion API endpoints
+- **API Chat**: OpenAI-compatible chat API  (e.g., GPT-4, Claude)
+- **API Completion**: OpenAI-compatible completion API 
 
 ### Input Types
 - **JSON Files**: Structured datasets with images and prompts
@@ -28,12 +28,12 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - **Single Images**: Individual image inference with custom prompts
 ## Route Map
 
-* Accelerate offline inference
-* CLI reorg
-* unify the two inference
-* Support multiple VLM preprocessing methods
-* Development of data distillation tools
-* Development of visualization tools
+[] Accelerate offline inference
+[] CLI reorg
+[] unify the two inference
+[] Support multiple VLM preprocessing methods
+[] Development of data distillation tools
+[] Development of visualization tools
 
 
 
