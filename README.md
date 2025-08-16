@@ -28,12 +28,12 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - **Single Images**: Individual image inference with custom prompts
 ## Route Map
 
-[] Accelerate offline inference
-[] CLI reorg
-[] unify the two inference
-[] Support multiple VLM preprocessing methods
-[] Development of data distillation tools
-[] Development of visualization tools
+- [] Accelerate offline inference
+- [] CLI reorg
+- [] unify the two inference
+- [] Support multiple VLM preprocessing methods
+- [] Development of data distillation tools
+- [] Development of visualization tools
 
 
 
