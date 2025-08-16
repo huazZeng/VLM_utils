@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-在线推理入口文件
-支持异步推理，直接使用异步等待
+统一的推理入口文件
+支持多种推理引擎：online (api_chat, api_completion) 和 offline (vllm_offline, transformer)
 """
 
 import asyncio
@@ -13,18 +13,18 @@ from base_inference import BaseInference
 from engine.engine_factory import InferenceEngineFactory
 
 
-class OnlineInference(BaseInference):
+class UnifiedInference(BaseInference):
     """
-    在线推理类，继承BaseInference，使用异步API引擎
+    统一推理类，继承BaseInference，支持所有类型的推理引擎
     """
     
     def __init__(self, parser: str, engine_type: str, **engine_kwargs):
         """
-        初始化在线推理器
+        初始化统一推理器
         
         Args:
             parser: 解析器类型
-            engine_type: 引擎类型，支持 "api_chat", "api_completion"
+            engine_type: 引擎类型，支持 "api_chat", "api_completion", "vllm_offline", "transformer"
             **engine_kwargs: 引擎特定的初始化参数
         """
         if parser is None:
@@ -50,11 +50,11 @@ class OnlineInference(BaseInference):
         self.engine = InferenceEngineFactory.create_engine(engine_type, **engine_kwargs)
         self.engine_type = engine_type
         
-        print(f"Online inference initialized with engine: {engine_type}")
+        print(f"Unified inference initialized with engine: {engine_type}")
     
-    async def single_infer(self, image_path: str, prompt: str) -> str:
+    def single_infer(self, image_path: str, prompt: str) -> str:
         """
-        单个推理的异步方法
+        单个推理方法
         
         Args:
             image_path: 图像路径
@@ -64,7 +64,7 @@ class OnlineInference(BaseInference):
             模型输出文本
         """
         try:
-            result = await self.engine.single_infer(
+            result = self.engine.single_infer(
                 image_path=image_path,
                 system_prompt=self.system_prompt,
                 user_prompt=prompt
@@ -175,7 +175,7 @@ class OnlineInference(BaseInference):
         
         try:
             # 直接使用引擎的batch_infer进行批量推理
-            batch_results =  self.engine.batch_infer(
+            batch_results = self.engine.batch_infer(
                 data,  # data就是image_paths列表
                 self.system_prompt,
                 default_prompt,
@@ -201,7 +201,7 @@ class OnlineInference(BaseInference):
             print("Falling back to single inference...")
             for i, image_path in enumerate(data):
                 try:
-                    prediction =  self.single_infer(image_path, default_prompt)
+                    prediction = self.single_infer(image_path, default_prompt)
                 except Exception as single_error:
                     prediction = ""
                     print(f"Error in single inference for image {i}: {single_error}")
@@ -237,9 +237,9 @@ class OnlineInference(BaseInference):
         
         # 根据输入类型选择处理函数
         if input_type == "json":
-            results =  self._process_json_batch(data, output_dir, save_mode, **kwargs)
+            results = self._process_json_batch(data, output_dir, save_mode, **kwargs)
         elif input_type == "folder":
-            results =  self._process_folder_batch(data, output_dir, save_mode, **kwargs)
+            results = self._process_folder_batch(data, output_dir, save_mode, **kwargs)
         else:
             raise ValueError(f"Unsupported input type: {input_type}")
         
@@ -256,61 +256,104 @@ class OnlineInference(BaseInference):
         print(f"Processed {len(results)} samples successfully.")
 
 
+def add_engine_specific_args(parser: argparse.ArgumentParser, engine_type: str):
+    """
+    根据引擎类型添加特定的参数
+    
+    Args:
+        parser: 参数解析器
+        engine_type: 引擎类型
+    """
+    if engine_type in ["api_chat", "api_completion"]:
+        # Online API 引擎参数
+        parser.add_argument("--base_url", type=str, required=True, help="API基础URL")
+        parser.add_argument("--model_name", type=str, required=True, help="模型名称")
+        parser.add_argument("--api_key", type=str, default="EMPTY", help="API密钥")
+        parser.add_argument("--concurrency", type=int, default=64, help="并发数")
+        parser.add_argument("--max_tokens", type=int, default=1024, help="最大token数")
+        parser.add_argument("--temperature", type=float, default=0.0, help="温度参数")
+        
+    elif engine_type in ["vllm_offline", "transformer"]:
+        # Offline 引擎参数
+        parser.add_argument("--model_name", type=str, help="模型名称或路径")
+        parser.add_argument("--skip_special_token", type=bool, default=False, help="跳过特殊token")
+        if engine_type == "vllm_offline":
+            parser.add_argument("--batch_size", type=int, default=16, help="批处理大小")
+
+
 def main():
     """主函数"""
     # 创建解析器
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--parser", type=str, help="Parser for inference")
+    parser = argparse.ArgumentParser(description="统一推理工具，支持多种推理引擎")
+    parser.add_argument("--parser", type=str, help="解析器类型")
     parser.add_argument("--engine_type", type=str, required=True, 
-                       choices=["api_chat", "api_completion"], 
-                       help="Inference engine type")
-    parser.add_argument("--base_url", type=str, required=True, help="API基础URL")
-    parser.add_argument("--model_name", type=str, required=True, help="模型名称")
-    parser.add_argument("--api_key", type=str, default="EMPTY", help="API密钥")
-    parser.add_argument("--system_prompt_file", type=str, help="System prompt for inference")
-    parser.add_argument("--user_prompt_file", type=str, help="User prompt for inference")
-    parser.add_argument("--max_tokens", type=int, default=1024, help="Max tokens for inference")
-    parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for inference")
-    parser.add_argument("--concurrency", type=int, default=64, help="并发数")
+                       choices=["api_chat", "api_completion", "vllm_offline", "transformer"], 
+                       help="推理引擎类型")
+    parser.add_argument("--system_prompt_file", type=str, help="系统提示词文件")
+    parser.add_argument("--user_prompt_file", type=str, help="用户提示词文件")
     
-    subparsers = parser.add_subparsers(dest='mode', help='Inference mode')
+    # 解析引擎类型参数
+    args, _ = parser.parse_known_args()
+    
+    # 根据引擎类型添加特定参数
+    add_engine_specific_args(parser, args.engine_type)
+    
+    # 添加推理模式子解析器
+    subparsers = parser.add_subparsers(dest='mode', help='推理模式')
         
     # 单个推理模式
-    single_parser = subparsers.add_parser('single', help='Single inference mode')
-    single_parser.add_argument("--image_path", type=str, required=True, help="Image file path")
-    single_parser.add_argument("--prompt", type=str, default="<image>Find the spectral images in the figure", help="Prompt text")
-    single_parser.add_argument("--save_path", type=str, default=None, help="Save path for visualization")
+    single_parser = subparsers.add_parser('single', help='单个推理模式')
+    single_parser.add_argument("--image_path", type=str, required=True, help="图像文件路径")
+    single_parser.add_argument("--prompt", type=str, default="<image>Find the spectral images in the figure", help="提示文本")
+    single_parser.add_argument("--save_path", type=str, default=None, help="可视化保存路径")
         
     # 批量推理模式
-    batch_parser = subparsers.add_parser('batch', help='Batch inference mode')
-    batch_parser.add_argument("--input_path", type=str, required=True, help="Input path (JSON file or folder)")
-    batch_parser.add_argument("--output_dir", type=str, required=True, help="Output directory for inference results")
-    batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="Save mode: 'divided' for separate files, 'all' for single file")
+    batch_parser = subparsers.add_parser('batch', help='批量推理模式')
+    batch_parser.add_argument("--input_path", type=str, required=True, help="输入路径（JSON文件或文件夹）")
+    batch_parser.add_argument("--output_dir", type=str, required=True, help="推理结果输出目录")
+    batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="保存模式：'divided'为分离文件，'all'为单个文件")
     
+    # 重新解析所有参数
     args = parser.parse_args()
 
     # 根据引擎类型准备参数
-    engine_kwargs = {
-        "base_url": args.base_url,
-        "model_name": args.model_name,
-        "api_key": args.api_key,
-        "concurrency": args.concurrency,
-        "max_tokens": args.max_tokens,
-        "temperature": args.temperature,
-    }
+    engine_kwargs = {}
+    
+    if args.engine_type in ["api_chat", "api_completion"]:
+        engine_kwargs = {
+            "base_url": args.base_url,
+            "model_name": args.model_name,
+            "api_key": args.api_key,
+            "concurrency": args.concurrency,
+            "max_tokens": args.max_tokens,
+            "temperature": args.temperature,
+        }
+    elif args.engine_type == "vllm_offline":
+        engine_kwargs = {
+            "model_name": args.model_name or "Qwen/Qwen2.5-VL-3B-Instruct",
+            "batch_size": args.batch_size,
+            "skip_special_token": args.skip_special_token,
+        }
+    elif args.engine_type == "transformer":
+        if not args.model_name:
+            raise ValueError("--model_name is required for transformer engine")
+        engine_kwargs = {
+            "model_name": args.model_name,
+            "skip_special_token": args.skip_special_token,
+        }
     
     engine_kwargs["system_prompt_file"] = args.system_prompt_file
     engine_kwargs["user_prompt_file"] = args.user_prompt_file
 
     # 初始化推理器
-    inference = OnlineInference(args.parser, args.engine_type, **engine_kwargs)
+    inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
     
     if args.mode == 'single':
         # 单个推理模式
         try:
-            print(f"  Engine type: {args.engine_type}")
+            print(f"Engine type: {args.engine_type}")
             
-            result = asyncio.run(inference.single_infer(args.image_path, args.prompt))
+            result = inference.single_infer(args.image_path, args.prompt)
             print(f"\nInference result:")
             print(result)
             
@@ -324,7 +367,7 @@ def main():
         
     elif args.mode == 'batch':
         try:     
-           inference.batch_infer(args.input_path, args.output_dir, args.save_mode)
+            inference.batch_infer(args.input_path, args.output_dir, args.save_mode)
             
         except FileNotFoundError as e:
             print(f"Error: {e}")
@@ -336,4 +379,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 

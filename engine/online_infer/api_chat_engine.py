@@ -83,7 +83,10 @@ class APIChatEngine(InferenceEngineBase):
             "max_tokens": self.max_tokens
         }
 
-    async def single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+        return asyncio.run(self._single_infer(image_path, system_prompt, user_prompt))
+    
+    async def _single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
         单个推理的异步方法
         
@@ -113,8 +116,10 @@ class APIChatEngine(InferenceEngineBase):
                 error=str(e),
                 image_path=image_path,
             )
-
-    async def batch_infer(self, *args) -> List[Dict[str, Any]]:
+    def batch_infer(self, *args) -> List[Dict[str, Any]]:
+        return asyncio.run(self._batch_infer(*args))
+    
+    async def _batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理的异步方法
         
@@ -135,7 +140,7 @@ class APIChatEngine(InferenceEngineBase):
 
         async def limited_single_infer(sample: Dict[str, Any]):
             async with semaphore:
-                return await self.single_infer(
+                return await self._single_infer(
                     sample["image_path"], 
                     sample["system_prompt"], 
                     sample["user_prompt"]
