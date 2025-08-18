@@ -10,8 +10,7 @@ from PIL import Image
 from typing import Dict, Any, List
 from tqdm import tqdm
 from utils.data_processor import _prepare_samples
-from .engine_base import InferenceEngineBase
-
+from engine.engine_base import InferenceEngineBase
 
 class TransformerEngine(InferenceEngineBase):
     """
@@ -35,7 +34,7 @@ class TransformerEngine(InferenceEngineBase):
         self.max_tokens = kwargs.get("max_tokens", 1024)
         self.temperature = kwargs.get("temperature", 0.0)
         self.skip_special_token = kwargs.get("skip_special_token", False)
-        
+        self.batch_size = kwargs.get("batch_size", 1)
         print(f"Loading Transformer model: {model_name}")
         config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
 
@@ -123,13 +122,10 @@ class TransformerEngine(InferenceEngineBase):
                 output_ids = self.model.generate(
                     **inputs, 
                     max_new_tokens=self.max_tokens,
-                    skip_special_tokens=self.skip_special_token,
-                    temperature=self.temperature
                 )
-            
             # 解码输出
             generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, output_ids)]
-            prediction = self.processor.batch_decode(generated_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)[0]
+            prediction = self.processor.batch_decode(generated_ids, skip_special_tokens=self.skip_special_token, clean_up_tokenization_spaces=False)[0]
             
             return self.create_result_dict(
                 success=True,
@@ -146,9 +142,42 @@ class TransformerEngine(InferenceEngineBase):
                 metadata={"model_name": self.model_name, "device": self.device}
             )
     
+    def _process_vision_info(self, messages_batch):
+        """
+        处理批量消息中的视觉信息
+        
+        Args:
+            messages_batch: 批量消息列表
+            
+        Returns:
+            image_inputs: 图像输入列表
+            video_inputs: 视频输入列表（当前为空）
+        """
+        image_inputs = []
+        video_inputs = []
+        
+        for messages in messages_batch:
+            images = []
+            videos = []
+            
+            for message in messages:
+                if message["role"] == "user":
+                    for content in message["content"]:
+                        if content.get("type") == "image" and "image" in content:
+                            image_path = content["image"]
+                            
+                            image = self.load_image(image_path)
+                            images.append(image)
+                           
+            
+            image_inputs.extend(images if images else [None])
+            video_inputs.extend(videos if videos else [None])
+        
+        return image_inputs, video_inputs
+
     def batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
-        批量推理：使用Transformer模型对多张图像进行推理
+        批量推理：使用Transformer模型对多张图像进行真正的批量推理
         
         Args:
             *args: 可变参数，支持以下三种情况：
@@ -159,22 +188,124 @@ class TransformerEngine(InferenceEngineBase):
         Returns:
             推理结果列表
         """
-        results = []
+        from utils.data_processor import _prepare_samples
         
         samples = _prepare_samples(*args)
-
-        for i, sample in enumerate(tqdm(samples, desc="Processing images")):
-            try:
-                result = self.single_infer(sample["image_path"], sample["user_prompt"], sample["system_prompt"])
-                results.append(result)
-            except Exception as e:
-                # 如果单个推理失败，添加错误结果
-                error_result = self.create_result_dict(
-                    success=False,
-                    error=str(e),
-                    image_path=sample["image_path"],
-                    metadata={"model_name": self.model_name, "device": self.device}
-                )
-                results.append(error_result)
+        results = []
         
-        return results 
+        # 提取批量数据
+        image_paths = [sample["image_path"] for sample in samples]
+        user_prompts = [sample["user_prompt"] for sample in samples]
+        system_prompts = [sample["system_prompt"] for sample in samples]
+        # 计算总批次数
+        total_batches = (len(samples) + self.batch_size - 1) // self.batch_size
+        
+        # 按批次处理，添加进度条
+        for batch_start in tqdm(range(0, len(samples), self.batch_size), 
+                               total=total_batches, 
+                               desc="Processing batches", 
+                               unit="batch"):
+            batch_end = min(batch_start + self.batch_size, len(samples))
+            batch_samples = samples[batch_start:batch_end]
+            batch_image_paths = image_paths[batch_start:batch_end]
+            batch_user_prompts = user_prompts[batch_start:batch_end]
+            batch_system_prompts = system_prompts[batch_start:batch_end]
+            
+            try:
+                # 准备批量消息格式
+                messages_batch = []
+                for image_path, user_prompt, system_prompt in zip(batch_image_paths, batch_user_prompts, batch_system_prompts):
+                    messages = [
+                        
+                        {
+                            "role": "system",
+                            "content": system_prompt
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "image": image_path},
+                                {"type": "text", "text": user_prompt},
+                            ],
+                        }
+                        
+                    ]
+                    messages_batch.append(messages)
+                
+                # 准备文本输入
+                texts = [
+                    self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                    for messages in messages_batch
+                ]
+                
+                # 处理视觉信息
+                image_inputs, _ = self._process_vision_info(messages_batch)
+                # 过滤掉无效的图像
+                valid_indices = [i for i, img in enumerate(image_inputs) if img is not None]
+                print(valid_indices)
+                if not valid_indices:
+                    for image_path in batch_image_paths:
+                        results.append(self.create_result_dict(
+                            success=False,
+                            error="Failed to load image",
+                            image_path=image_path,
+                            metadata={"model_name": self.model_name, "device": self.device}
+                        ))
+                    continue
+                
+                # 准备批量输入
+                valid_texts = [texts[i] for i in valid_indices]
+                valid_images = [image_inputs[i] for i in valid_indices]
+                inputs = self.processor(
+                    text=valid_texts,
+                    images=valid_images,
+                    padding=True,
+                    return_tensors="pt",
+                    padding_side='left'
+                ).to(self.device)
+                
+                # 执行批量推理
+                with torch.no_grad():
+                    generated_ids = self.model.generate(
+                        **inputs, 
+                        max_new_tokens=self.max_tokens,
+                        eos_token_id=self.tokenizer.eos_token_id,  # 指定终止 token
+                        pad_token_id=self.tokenizer.pad_token_id,
+                    )
+                # 解码输出
+                generated_ids_trimmed = [
+                    out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+                ]
+                print(self.skip_special_token)
+                output_texts = self.processor.batch_decode(
+                    generated_ids_trimmed,
+                    skip_special_tokens=self.skip_special_token, 
+                    clean_up_tokenization_spaces=False
+                    
+                )
+                # 构建当前批次的结果列表
+                result_index = 0
+                for i, image_path in enumerate(batch_image_paths):
+                    if i in valid_indices:
+                        # 有效图像，添加成功结果
+                        results.append(self.create_result_dict(
+                            success=True,
+                            prediction=output_texts[result_index],
+                            image_path=image_path,
+                        ))
+                        result_index += 1
+                
+                        
+            except Exception as e:
+                # 如果当前批次推理失败，为所有样本添加错误结果
+                for image_path in batch_image_paths:
+                    results.append(self.create_result_dict(
+                        success=False,
+                        error=f"Batch inference failed: {str(e)}",
+                        image_path=image_path,
+                        metadata={"model_name": self.model_name, "device": self.device}
+                    ))
+                print(f"Batch failed: {str(e)}")
+        
+        
+        return results

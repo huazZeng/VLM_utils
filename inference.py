@@ -113,8 +113,8 @@ class UnifiedInference(BaseInference):
             default_prompt = self.user_prompt
             batch_results = self.engine.batch_infer(
                 image_paths, 
-                self.system_prompt,
                 default_prompt,
+                self.system_prompt,
             )
             
             # 处理批量推理结果
@@ -177,8 +177,8 @@ class UnifiedInference(BaseInference):
             # 直接使用引擎的batch_infer进行批量推理
             batch_results = self.engine.batch_infer(
                 data,  # data就是image_paths列表
-                self.system_prompt,
                 default_prompt,
+                self.system_prompt,
             )
             
             # 处理批量推理结果

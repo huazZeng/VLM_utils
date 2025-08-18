@@ -28,7 +28,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
             **kwargs: 其他参数
         """
         super().__init__(**kwargs)
-        self.batch_size = kwargs.get('batch_size', 16)
+        self.batch_size = kwargs.get('batch_size', 4)
         self.model_name = model_name
         
         # 初始化vLLM模型
