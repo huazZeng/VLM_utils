@@ -312,7 +312,8 @@ def main():
     batch_parser.add_argument("--input_path", type=str, required=True, help="输入路径（JSON文件或文件夹）")
     batch_parser.add_argument("--output_dir", type=str, required=True, help="推理结果输出目录")
     batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="保存模式：'divided'为分离文件，'all'为单个文件")
-    
+    batch_parser.add_argument("--batch_size", type=int, default=16, help="批处理大小")
+    batch_parser.add_argument("--concurrency", type=int, default=64, help="并发数")
     # 重新解析所有参数
     args = parser.parse_args()
 
@@ -339,6 +340,7 @@ def main():
             raise ValueError("--model_name is required for transformer engine")
         engine_kwargs = {
             "model_name": args.model_name,
+            "batch_size": args.batch_size,
             "skip_special_token": args.skip_special_token,
         }
     
