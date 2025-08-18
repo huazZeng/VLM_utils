@@ -40,82 +40,86 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 ## 📖 Usage
 
 ### 1. Offline Inference
-
-#### Single Image Inference
+#### Single Inferencer
+* online 
 ```bash
-python -m offline_inference \
-    --engine_type "vllm_offline" \
-    --model_name "/path/to/your/model" \
-    --skip_special_token True \
+INPUT_PATH="path contains images"
+OUTPUT_PATH=""
+BASE_URL=""
+MODEL_NAME="gpt-4o-mini"
+API_KEY="sk-"
+PARSER="default"
+SAVE_MODE="all"
+CONCURRENCY=2
+MAX_TOKENS=1024
+TEMPERATURE=0.0
+
+python -m inference \
+    --engine_type api_chat \
+    --base_url "$BASE_URL" \
+    --model_name "$MODEL_NAME" \
+    --api_key "$API_KEY" \
+    --parser "$PARSER" \
+    --concurrency "$CONCURRENCY" \
+    --max_tokens "$MAX_TOKENS" \
+    --temperature "$TEMPERATURE" \
     single \
-    --image_path "/path/to/image.jpg" \
-    --prompt "Describe this image"
+    --image_path "" \
+    --prompt "" \
+    --save_path ""
 ```
 
-#### Batch Inference from JSON
-```bash
-python -m offline_inference \
-    --engine_type "vllm_offline" \
-    --model_name "/path/to/your/model" \
-    --skip_special_token True \
-    --batch_size 16 \
-    batch \
-    --input_path "/path/to/dataset.json" \
-    --output_file "/path/to/results.json" \
-    --save_mode "all"
+* offline
 ```
-
-#### Batch Inference from Folder
-```bash
-python -m offline_inference \
-    --engine_type "transformer" \
-    --model_name "Qwen/Qwen2.5-VL-3B-Instruct" \
-    batch \
-    --input_path "/path/to/image/folder" \
-    --output_file "/path/to/results.json" \
-    --save_mode "divided"
-```
-
-### 2. Online Inference
-
-#### Single Image Inference
-```bash
-python -m online_infer \
-    --engine_type "api_chat" \
-    --base_url "https://api.openai.com/v1" \
-    --model_name "gpt-4o-mini" \
-    --api_key "your-api-key" \
+MODEL_NAME=""
+python -m inference \
+    --engine_type --engine_type "transformer" or "vllm_offline" \
+    --model_name $MODEL_NAME \
     single \
-    --image_path "/path/to/image.jpg" \
-    --prompt "Analyze this image"
+    --image_path "" \
+    --prompt "" \
+    --save_path ""
+
 ```
 
-#### Batch Inference
+#### Batch Inferencer
+* online
 ```bash
-python -m online_infer \
-    --engine_type "api_chat" \
-    --base_url "https://api.openai.com/v1" \
-    --model_name "gpt-4o-mini" \
-    --api_key "your-api-key" \
-    --concurrency 64 \
+INPUT_PATH="path contains images"
+OUTPUT_PATH=""
+BASE_URL=""
+MODEL_NAME="gpt-4o-mini"
+API_KEY="sk-"
+PARSER="default"
+SAVE_MODE="all"
+CONCURRENCY=2
+MAX_TOKENS=1024
+TEMPERATURE=0.0
+
+python -m inference \
+    --engine_type api_chat \
+    --base_url "$BASE_URL" \
+    --model_name "$MODEL_NAME" \
+    --api_key "$API_KEY" \
+    --parser "$PARSER" \
+    --concurrency "$CONCURRENCY" \
+    --max_tokens "$MAX_TOKENS" \
+    --temperature "$TEMPERATURE" \
     batch \
-    --input_path "/path/to/dataset.json" \
-    --output_dir "/path/to/results" \
-    --save_mode "all"
+    --input_path "$INPUT_PATH" \
+    --output_dir "$OUTPUT_PATH" \
+    --save_mode "$SAVE_MODE"
 ```
-
-### 3. Using Shell Scripts
-
-#### Offline Inference Script
-```bash
-# Edit run.sh with your parameters
-./run.sh
+* offline
 ```
-
-#### Online Inference Script
-```bash
-# Edit run_online_infer.sh with your parameters
-./run_online_infer.sh
+MODEL_NAME=""
+python -m inference \
+    --engine_type "transformer" or "vllm_offline" \
+    --model_name $MODEL_NAME \
+    batch \
+    --input_path "/mnt/petrelfs/zenghuazheng/workspace/data/spectral/test_data.json" \
+    --output_dir "/mnt/petrelfs/zenghuazheng/workspace/vlm_utils/dataset/eval/vllm_all/" \
+    --save_mode "all" \
 ```
 
 ## 🔧 Configuration

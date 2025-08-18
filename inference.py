@@ -4,9 +4,7 @@
 支持多种推理引擎：online (api_chat, api_completion) 和 offline (vllm_offline, transformer)
 """
 
-import asyncio
 import argparse
-import json
 import os
 from typing import List, Dict, Any
 from base_inference import BaseInference
