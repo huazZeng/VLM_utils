@@ -151,7 +151,7 @@ class BaseInference(ABC):
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(complete_result, f, indent=2, ensure_ascii=False)
     
-    def _save_all_results(self, results: List[Dict], output_dir: str, input_type: str):
+    def _save_all_results(self,model_name, results: List[Dict], output_dir: str, input_type: str):
         """
         保存为单个文件模式
         
@@ -161,7 +161,9 @@ class BaseInference(ABC):
             input_type: 输入类型（"json"或"folder"）
         """
         # 创建输出目录
-        output_file = os.path.join(output_dir, "all_results.json")
+        if '/' in model_name:
+            model_name = model_name.split('/')[-1]
+        output_file = os.path.join(output_dir, f"{model_name}.json")
         # 构建结果字典
         all_results = {}
         

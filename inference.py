@@ -47,7 +47,7 @@ class UnifiedInference(BaseInference):
         # 直接初始化推理引擎
         self.engine = InferenceEngineFactory.create_engine(engine_type, **engine_kwargs)
         self.engine_type = engine_type
-        
+        self.model_name = engine_kwargs.get("model_name", "default")
         print(f"Unified inference initialized with engine: {engine_type}")
     
     def single_infer(self, image_path: str, prompt: str) -> str:
@@ -286,7 +286,7 @@ class UnifiedInference(BaseInference):
             print(f"All individual results saved to: {output_dir}")
         else:  # save_mode == "all"
             # 保存所有结果到一个文件
-            self._save_all_results(results, output_dir, input_type)
+            self._save_all_results(self.model_name, results, output_dir, input_type)
         
         print(f"Batch inference completed! Results saved with mode: {save_mode}")
         print(f"Processed {len(results)} samples successfully.")
