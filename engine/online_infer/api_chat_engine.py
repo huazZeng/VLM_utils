@@ -40,14 +40,14 @@ class APIChatEngine(InferenceEngineBase):
     def image_to_data_uri(self, image_path: str) -> str:
         """将图像转换为data URI格式"""
         image = Image.open(image_path)
-        original_width, original_height = image.size
-        new_width, new_height = smart_resize(
-            original_width, original_height,
-            min_pixels=512*28*28, max_pixels=2048*28*28
-        )
-        resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        # original_width, original_height = image.size
+        # new_width, new_height = smart_resize(
+        #     original_width, original_height,
+        #     min_pixels=512*28*28, max_pixels=2048*28*28
+        # )
+        # resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         buffer = io.BytesIO()
-        resized_image.save(buffer, format='JPEG', quality=95)
+        image.save(buffer, format='JPEG', quality=95)
         encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
         return f"data:image/jpeg;base64,{encoded}"
 
@@ -73,10 +73,15 @@ class APIChatEngine(InferenceEngineBase):
                 "text": user_prompt
             }
         ]
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": content}
-        ]
+        if system_prompt:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content}
+            ]
+        else:
+            messages = [
+                {"role": "user", "content": content}
+            ]
         return {
             "messages": messages,
             "temperature": self.temperature,

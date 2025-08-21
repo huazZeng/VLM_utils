@@ -106,13 +106,35 @@ class UnifiedInference(BaseInference):
             return results
         
         try:
-            # 直接使用引擎的batch_infer进行批量推理
-            # 对于JSON文件，我们使用默认的prompt，因为每个样本的prompt可能不同
-            default_prompt = self.user_prompt
+            # 为每个样本准备对应的prompt和system_prompt
+            prompts = []
+            system_prompts = []
+            
+            for sample_idx in sample_indices:
+                sample = data[sample_idx]
+                messages = sample.get("messages", [])
+                
+                # 获取user prompt
+                user_prompt = ""
+                system_prompt = ""
+                for msg in messages:
+                    if msg.get("role") == "user":
+                        content = msg.get("content", "")
+                        user_prompt = content
+                    if msg.get("role") == "system":
+                        system_prompt = msg.get("content", "")
+                        
+                
+                if not system_prompt:
+                    system_prompt = ""
+                prompts.append(user_prompt)
+                system_prompts.append(system_prompt)
+            
+            # 使用引擎的batch_infer进行批量推理，每个样本使用自己的prompt
             batch_results = self.engine.batch_infer(
                 image_paths, 
-                default_prompt,
-                self.system_prompt,
+                prompts,
+                system_prompts,
             )
             
             # 处理批量推理结果
@@ -120,11 +142,18 @@ class UnifiedInference(BaseInference):
                 sample = data[sample_idx]
                 
                 prediction = batch_result["prediction"]
+                messages = sample.get("messages", [])
+                ground_truth = ""
+                
+                for msg in messages:
+                    if msg.get("role") == "assistant":
+                        ground_truth = msg.get("content", "")
+                        break
                 
                 result = {
                     "image_path": sample["images"][0],
-                    "prompt": sample["messages"][-2]["content"],  # 使用原始prompt
-                    "ground_truth": sample["messages"][-1]["content"],  # assistant message
+                    "prompt": prompts[i],  # 使用之前提取的prompt
+                    "ground_truth": ground_truth,
                     "prediction": prediction
                 }
                 results.append(result)
@@ -137,18 +166,27 @@ class UnifiedInference(BaseInference):
             for i, sample_idx in enumerate(sample_indices):
                 sample = data[sample_idx]
                 image_path = sample["images"][0]
-                prompt = sample["messages"][-2]["content"]
+                
+                # 直接使用之前提取的prompt，只需要获取ground_truth
+                messages = sample.get("messages", [])
+                ground_truth = ""
+                
+                # 查找assistant消息作为ground_truth
+                for msg in messages:
+                    if msg.get("role") == "assistant":
+                        ground_truth = msg.get("content", "")
+                        break
                 
                 try:
-                    prediction = self.single_infer(image_path, prompt)
+                    prediction = self.single_infer(image_path, prompts[i])  # 使用之前提取的prompt
                 except Exception as single_error:
                     prediction = ""
                     print(f"Error in single inference for sample {sample_idx}: {single_error}")
                 
                 result = {
                     "image_path": image_path,
-                    "prompt": prompt,
-                    "ground_truth": sample["messages"][-1]["content"],
+                    "prompt": prompts[i],  # 使用之前提取的prompt
+                    "ground_truth": ground_truth,
                     "prediction": prediction
                 }
                 results.append(result)

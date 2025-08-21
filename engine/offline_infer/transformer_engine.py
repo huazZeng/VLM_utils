@@ -68,26 +68,26 @@ class TransformerEngine(InferenceEngineBase):
         try:
             # 加载图像
             image = self.load_image(image_path)
-            
-            # 准备消息格式
-            messages = [
-                {
+            messages = []
+            if system_prompt:
+                messages.append({
                     "role": "system",
                     "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": user_prompt
-                        },
-                        {
-                            "image": image_path
-                        }
-                    ]
-                }
-            ]
+                })
+            messages.append({
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": user_prompt
+                    },
+                    {
+                        "type": "image",
+                        "image": image_path
+                    }
+                ]
+            })
+            
             
             # 应用聊天模板
             text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
