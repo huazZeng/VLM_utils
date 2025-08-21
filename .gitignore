@@ -15,7 +15,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.ipynb
-
+prompt/
 # C extensions
 *.so
 

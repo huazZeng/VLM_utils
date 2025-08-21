@@ -169,7 +169,7 @@ class UnifiedInference(BaseInference):
             推理结果列表
         """
         results = []
-        default_prompt = "Describe the image in detail."
+        default_prompt = self.user_prompt
         
         try:
             # 直接使用引擎的batch_infer进行批量推理

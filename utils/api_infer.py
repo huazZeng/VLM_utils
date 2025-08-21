@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from typing import List, Dict, Optional
 from openai import AsyncOpenAI
-
+import asyncio
 
 class OpenAIChatClient:
     """
@@ -88,3 +88,11 @@ class OpenAIChatClient:
         except Exception as e:
             print(f"Error in chat_many: {e}")
             return [""] * len(messages_list)
+
+if __name__ == "__main__":
+    client = OpenAIChatClient(
+        base_url="https://api.boyuerichdata.opensphereai.com/v1",
+        api_key="sk-rc13fDLPmFGMysHxbLHwS18RFFGxEBZTju6eNpgTDMxt8kkG",
+        model_name="gemini-2.5-pro",
+    )
+    print(asyncio.run(client.chat([{"role": "user", "content": "Hello, how are you?"}])))
