@@ -2,6 +2,8 @@
 from typing import List, Dict, Optional
 from openai import AsyncOpenAI
 import asyncio
+import time
+import random
 
 class OpenAIChatClient:
     """
@@ -15,11 +17,15 @@ class OpenAIChatClient:
         api_key: str,
         model_name: str,
         timeout: float = 60.0,
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
     ) -> None:
         self.base_url = base_url
         self.api_key = api_key
         self.model_name = model_name
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
         try:
             self.async_client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout)
         except Exception as e:
@@ -33,18 +39,24 @@ class OpenAIChatClient:
         max_tokens: int = 512,
         skip_special_tokens: bool = True,
     ) -> str:
-        try:
-            resp = await self.async_client.completions.create(
-                model=self.model_name,
-                prompt=prompt,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                skip_special_tokens=True,
-            )
-            return resp.choices[0].text
-        except Exception as e:
-            print(f"Error in complete: {e}")
-            return ""
+        for attempt in range(self.max_retries + 1):
+            try:
+                resp = await self.async_client.completions.create(
+                    model=self.model_name,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    skip_special_tokens=True,
+                )
+                return resp.choices[0].text
+            except Exception as e:
+                if attempt < self.max_retries:
+                    delay = self.retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay:.2f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    print(f"All {self.max_retries + 1} attempts failed. Last error: {e}")
+                    return ""
 
     async def chat(
         self,
@@ -52,17 +64,23 @@ class OpenAIChatClient:
         temperature: float = 0.0,
         max_tokens: int = 512,
     ) -> str:
-        try:
-            resp = await self.async_client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return resp.choices[0].message.content
-        except Exception as e:
-            print(f"Error in chat: {e}")
-            return ""
+        for attempt in range(self.max_retries + 1):
+            try:
+                resp = await self.async_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return resp.choices[0].message.content
+            except Exception as e:
+                if attempt < self.max_retries:
+                    delay = self.retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay:.2f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    print(f"All {self.max_retries + 1} attempts failed. Last error: {e}")
+                    return ""
 
     async def chat_many(
         self,
@@ -77,12 +95,8 @@ class OpenAIChatClient:
             semaphore = asyncio.Semaphore(concurrency)
 
             async def _one(msgs: List[Dict]):
-                try:
-                    async with semaphore:
-                        return await self.chat(msgs, temperature=temperature, max_tokens=max_tokens)
-                except Exception as e:
-                    print(f"Error in _one: {e}")
-                    return ""
+                async with semaphore:
+                    return await self.chat(msgs, temperature=temperature, max_tokens=max_tokens)
 
             return await asyncio.gather(*[_one(msgs) for msgs in messages_list])
         except Exception as e:

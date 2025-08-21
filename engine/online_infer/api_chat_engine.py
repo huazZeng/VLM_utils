@@ -34,8 +34,8 @@ class APIChatEngine(InferenceEngineBase):
             api_key=self.api_key,
             model_name=self.model_name
         )
-        print(f"vLLM API client initialized with model: {model_name}")
-        print(f"vLLM API client initialized with base_url: {base_url}")
+        print(f"API client initialized with model: {model_name}")
+        print(f"API client initialized with base_url: {base_url}")
 
     def image_to_data_uri(self, image_path: str) -> str:
         """将图像转换为data URI格式"""
@@ -154,7 +154,7 @@ class APIChatEngine(InferenceEngineBase):
             try:
                 r = await coro
                 processed_results.append(r)
-            except Exception as e:
+            except Exception as e: 
                 idx = len(processed_results)
                 processed_results.append(self.create_result_dict(
                     success=False,

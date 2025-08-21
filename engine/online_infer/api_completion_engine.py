@@ -35,8 +35,8 @@ class APICompletionEngine(InferenceEngineBase):
             api_key=self.api_key,
             model_name=self.model_name
         )
-        print(f"vLLM API client initialized with model: {model_name}")
-        print(f"vLLM API client initialized with base_url: {base_url}")
+        print(f"API Completion client initialized with model: {model_name}")
+        print(f"API Completion client initialized with base_url: {base_url}")
 
     def image_to_data_uri(self, image_path: str) -> str:
         """将图像转换为data URI格式"""
