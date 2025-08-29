@@ -126,7 +126,7 @@ class UnifiedInference(BaseInference):
                         
                 
                 if not system_prompt:
-                    system_prompt = ""
+                    system_prompt = self.system_prompt
                 prompts.append(user_prompt)
                 system_prompts.append(system_prompt)
             

@@ -36,7 +36,7 @@ class VLLMOfflineEngine(InferenceEngineBase):
         engine_args = EngineArgs(
             model=model_name,
             max_model_len=4096,
-            max_num_seqs=4,  # 支持批量推理
+            max_num_seqs=self.batch_size,  # 支持批量推理
             mm_processor_kwargs={
                 "min_pixels": 401408,
                 "max_pixels": 1003520,

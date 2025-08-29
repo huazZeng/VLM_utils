@@ -39,9 +39,9 @@ class TransformerEngine(InferenceEngineBase):
         self.batch_size = kwargs.get("batch_size", 1)
         print(f"Loading Transformer model: {model_name}")
         config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-
+        
         # 加载模型和tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, padding_side='left')
         self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
         self.model = AutoModelForVision2Seq.from_pretrained(
             model_name, 
@@ -50,7 +50,9 @@ class TransformerEngine(InferenceEngineBase):
             trust_remote_code=True,
             config=config
         )
-        
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.processor.tokenizer.padding_side = "left"
+        self.processor.tokenizer.pad_token = self.tokenizer.eos_token
         print("Transformer model loaded successfully!")
     
     def preprocess(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
@@ -174,14 +176,13 @@ class TransformerEngine(InferenceEngineBase):
                                 print(f"Failed to load image {image_path}: {e}")
                                 images.append(None)
                         elif content.get("type") == "video" and "video" in content:
-                            # 处理视频（当前为空实现）
-                            videos.append(None)
+                            continue
             
             # 如果当前消息没有图像，添加None
             if not images:
-                images = [None]
+                images = []
             if not videos:
-                videos = [None]
+                videos = []
                 
             image_inputs.extend(images)
             video_inputs.extend(videos)
@@ -242,26 +243,25 @@ class TransformerEngine(InferenceEngineBase):
                         }
                     ]
                     messages_batch.append(messages)
-                
+                # print("messages_batch done")
                 # 准备文本输入 - 对齐示例代码
                 texts = [
                     self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
                     for messages in messages_batch
                 ]
-                
+                # print("apply chat template done")
                 # 处理视觉信息 - 对齐示例代码
                 image_inputs, video_inputs = self._process_vision_info(messages_batch)
-                
+                # print("process vision info done")
                 # 准备批量输入 - 对齐示例代码
                 inputs = self.processor(
                     text=texts,
                     images=image_inputs,
-                    videos=video_inputs,
                     padding=True,
                     return_tensors="pt",
                 )
                 inputs = inputs.to(self.device)
-                
+                # print("inputs done")
                 # 执行批量推理 - 对齐示例代码
                 with torch.no_grad():
                     generated_ids = self.model.generate(
