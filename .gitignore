@@ -67,6 +67,6 @@ coverage.xml
 # Auto generate documentation
 docs/en/_build/
 docs/zh_cn/_build/
-
+single.sh
 # .zip
 *.zipocr_md_output/

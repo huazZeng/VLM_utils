@@ -3,6 +3,9 @@
 A comprehensive and modular framework for Vision Language Model (VLM) inference, supporting multiple inference engines and deployment scenarios.
 
 ## 🚀 Features
+### Bugs
+* no support for  different model type 
+
 
 ### Core Capabilities
 - **Unified Interface**: Single entry point for all inference engines
