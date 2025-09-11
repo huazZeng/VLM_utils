@@ -330,10 +330,10 @@ def main():
     
     # 解析引擎类型参数
     args, _ = parser.parse_known_args()
-    
+
     # 根据引擎类型添加特定参数
     add_engine_specific_args(parser, args.engine_type)
-    
+
     # 添加推理模式子解析器
     subparsers = parser.add_subparsers(dest='mode', help='推理模式')
         
@@ -348,6 +348,7 @@ def main():
     batch_parser.add_argument("--input_path", type=str, required=True, help="输入路径（JSON文件或文件夹）")
     batch_parser.add_argument("--output_dir", type=str, required=True, help="推理结果输出目录")
     batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="保存模式：'divided'为分离文件，'all'为单个文件")
+    args, _ = parser.parse_known_args()
 
     # 根据引擎类型准备参数
     engine_kwargs = {}
