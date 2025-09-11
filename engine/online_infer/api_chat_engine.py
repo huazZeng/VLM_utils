@@ -29,10 +29,14 @@ class APIChatEngine(InferenceEngineBase):
         self.concurrency = kwargs.get("concurrency", 64)
         self.max_tokens = kwargs.get("max_tokens", 1024)
         self.temperature = kwargs.get("temperature", 0.0)
+        self.timeout = kwargs.get("timeout", 60.0)
+        self.max_retries = kwargs.get("max_retries", 3)
         self.client = OpenAIChatClient(
             base_url=self.base_url,
             api_key=self.api_key,
-            model_name=self.model_name
+            model_name=self.model_name,
+            timeout=self.timeout,
+            max_retries=self.max_retries,
         )
         print(f"API client initialized with model: {model_name}")
         print(f"API client initialized with base_url: {base_url}")

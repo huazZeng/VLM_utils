@@ -308,13 +308,13 @@ def add_engine_specific_args(parser: argparse.ArgumentParser, engine_type: str):
         parser.add_argument("--concurrency", type=int, default=64, help="并发数")
         parser.add_argument("--max_tokens", type=int, default=1024, help="最大token数")
         parser.add_argument("--temperature", type=float, default=0.0, help="温度参数")
-        
+        parser.add_argument("--timeout", type=float, default=60.0, help="超时限制")
+        parser.add_argument("--max_retries", type=int, default=3, help="最大重试次数")
     elif engine_type in ["vllm_offline", "transformer"]:
         # Offline 引擎参数
         parser.add_argument("--model_name", type=str, help="模型名称或路径")
         parser.add_argument("--skip_special_token", type=bool, default=False, help="跳过特殊token")
-        if engine_type == "vllm_offline":
-            parser.add_argument("--batch_size", type=int, default=16, help="批处理大小")
+        parser.add_argument("--batch_size", type=int, default=16, help="批量大小")
 
 
 def main():
@@ -348,42 +348,46 @@ def main():
     batch_parser.add_argument("--input_path", type=str, required=True, help="输入路径（JSON文件或文件夹）")
     batch_parser.add_argument("--output_dir", type=str, required=True, help="推理结果输出目录")
     batch_parser.add_argument("--save_mode", type=str, choices=["divided", "all"], default="all", help="保存模式：'divided'为分离文件，'all'为单个文件")
-    batch_parser.add_argument("--batch_size", type=int, default=16, help="批处理大小")
-    batch_parser.add_argument("--concurrency", type=int, default=64, help="并发数")
-    # 重新解析所有参数
-    args = parser.parse_args()
 
     # 根据引擎类型准备参数
     engine_kwargs = {}
-    
+
+    # Common parameters for all modes and engine types
+    common_params = {
+        "system_prompt_file": args.system_prompt_file,
+        "user_prompt_file": args.user_prompt_file
+    }
+
+    # Add common parameters to engine_kwargs
+    engine_kwargs.update(common_params)
+
+    # Engine-specific parameters
     if args.engine_type in ["api_chat", "api_completion"]:
-        engine_kwargs = {
+        engine_kwargs.update({
             "base_url": args.base_url,
             "model_name": args.model_name,
             "api_key": args.api_key,
             "concurrency": args.concurrency,
             "max_tokens": args.max_tokens,
             "temperature": args.temperature,
-        }
-    elif args.engine_type == "vllm_offline":
-        engine_kwargs = {
-            "model_name": args.model_name or "Qwen/Qwen2.5-VL-3B-Instruct",
-            "batch_size": args.batch_size,
-            "skip_special_token": args.skip_special_token,
-        }
-    elif args.engine_type == "transformer":
-        if not args.model_name:
+            "timeout": args.timeout,
+            "max_retries": args.max_retries,
+        })
+    elif args.engine_type in ["vllm_offline", "transformer"]:
+        # Check required parameter for transformer engine
+        if args.engine_type == "transformer" and not args.model_name:
             raise ValueError("--model_name is required for transformer engine")
-        engine_kwargs = {
-            "model_name": args.model_name,
-            "batch_size": args.batch_size,
+        
+        # Base parameters for offline engines
+        engine_kwargs.update({
+            "model_name": args.model_name or "Qwen/Qwen2.5-VL-3B-Instruct",
             "skip_special_token": args.skip_special_token,
-        }
-    
-    engine_kwargs["system_prompt_file"] = args.system_prompt_file
-    engine_kwargs["user_prompt_file"] = args.user_prompt_file
+        })
+        
+        # Add batch_size only for batch mode
+        if args.mode == 'batch':
+            engine_kwargs["batch_size"] = args.batch_size
 
-    # 初始化推理器
     inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
     
     if args.mode == 'single':
