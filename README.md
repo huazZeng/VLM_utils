@@ -59,8 +59,8 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - [x] Unified inference interface
 - [x] Progress tracking for batch processing
 - [x] Memory-efficient batch inference
-- [ ] Accelerate offline inference
-- [ ] CLI reorganization
+- [x] Accelerate offline inference
+- [x] CLI reorganization
 - [ ] Support multiple VLM preprocessing methods
 - [ ] Development of data distillation tools
 - [ ] Support for the middle file saving

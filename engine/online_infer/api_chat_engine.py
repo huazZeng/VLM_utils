@@ -128,47 +128,39 @@ class APIChatEngine(InferenceEngineBase):
     def batch_infer(self, *args) -> List[Dict[str, Any]]:
         return asyncio.run(self._batch_infer(*args))
     
+    # Replace the batch inference completion loop with this improved version
     async def _batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理的异步方法
-        
-        Args:
-            *args: 可变参数，支持以下三种情况：
-            1. list image_paths, str user_prompt, str system_prompt
-            2. list image_paths, list user_prompts, list system_prompts
-            3. list of dict [{"image_path":..., "user_prompt":..., "system_prompt":...}, ...]
-            
-        Returns:
-            推理结果列表
         """
         from utils.data_processor import _prepare_samples
-        
+
         samples = _prepare_samples(*args)
         concurrency = self.concurrency
         semaphore = asyncio.Semaphore(concurrency)
 
-        async def limited_single_infer(sample: Dict[str, Any]):
+        async def limited_single_infer(idx: int, sample: Dict[str, Any]):
             async with semaphore:
-                return await self._single_infer(
-                    sample["image_path"], 
-                    sample["system_prompt"], 
-                    sample["user_prompt"]
-                )
+                try:
+                    r = await self._single_infer(
+                        sample["image_path"],
+                        sample["system_prompt"],
+                        sample["user_prompt"],
+                    )
+                    return idx, r
+                except Exception as e:
+                    return idx, self.create_result_dict(
+                        success=False,
+                        error=str(e),
+                        image_path=sample.get("image_path", ""),
+                    )
 
-        tasks = [limited_single_infer(sample) for sample in samples]
-        processed_results = []
+        tasks = [limited_single_infer(i, s) for i, s in enumerate(samples)]
+        processed_results = [None] * len(tasks)  # 预分配，保证顺序
 
-        # 使用 asyncio.as_completed 来实时更新进度
+        # 实时进度条 + 按 idx 写入结果
         for coro in async_tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="推理进度"):
-            try:
-                r = await coro
-                processed_results.append(r)
-            except Exception as e: 
-                idx = len(processed_results)
-                processed_results.append(self.create_result_dict(
-                    success=False,
-                    error=str(e),
-                    image_path=samples[idx]["image_path"] if idx < len(samples) else "",
-                ))
+            idx, r = await coro
+            processed_results[idx] = r
 
         return processed_results
