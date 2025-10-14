@@ -8,7 +8,7 @@ import asyncio
 import base64
 import io
 from PIL import Image
-from qwen_vl_utils import smart_resize
+# from qwen_vl_utils import smart_resize
 from typing import Dict, Any, List
 from tqdm.asyncio import tqdm as async_tqdm
 from utils.api_infer import OpenAIChatClient

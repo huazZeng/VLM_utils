@@ -17,7 +17,7 @@ class UnifiedInference(BaseInference):
     统一推理类，继承BaseInference，支持所有类型的推理引擎
     """
     
-    def __init__(self, parser: str, engine_type: str, checker: str = None, max_retries: int = 3, **engine_kwargs):
+    def __init__(self, parser: str, engine_type: str, checker: str = None, max_check_retries: int = 3, **engine_kwargs):
         """
         初始化统一推理器
         
@@ -36,8 +36,8 @@ class UnifiedInference(BaseInference):
         if checker is None:
             checker = "default"
         self.checker = BaseChecker.create_checker(checker)
-        self.max_retries = max_retries
-        print(f"Checker initialized: {self.checker.get_checker_name()}, max_retries: {max_retries}")
+        self.max_retries = max_check_retries
+        print(f"Checker initialized: {self.checker.get_checker_name()}, max_retries: {max_check_retries}")
         
         # 设置系统提示词和用户提示词
         system_prompt_file = engine_kwargs.get("system_prompt_file", None)
@@ -384,7 +384,7 @@ def main():
     parser = argparse.ArgumentParser(description="统一推理工具，支持多种推理引擎")
     parser.add_argument("--parser", type=str, help="解析器类型")
     parser.add_argument("--checker", type=str, help="检查器类型（如json, default等）")
-    parser.add_argument("--max_retries", type=int, default=3, help="检查失败时的最大重试次数")
+    parser.add_argument("--max_check_retries", type=int, default=3, help="检查失败时的最大重试次数")
     parser.add_argument("--engine_type", type=str, required=True, 
                        choices=["api_chat", "api_completion", "vllm_offline", "transformer"], 
                        help="推理引擎类型")
@@ -456,7 +456,7 @@ def main():
         parser=args.parser,
         engine_type=args.engine_type,
         checker=args.checker,
-        max_retries=args.max_retries,
+        max_check_retries=args.max_check_retries,
         **engine_kwargs
     )
     
