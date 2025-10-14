@@ -16,6 +16,7 @@ A comprehensive and modular framework for Vision Language Model (VLM) inference,
 - **Batch Processing**: Efficient batch inference with configurable batch sizes and progress tracking
 - **Async Processing**: Full asynchronous support for high-performance API-based inference
 - **Result Parsing**: Built-in parsers for structured output processing
+- **Result Validation**: Checker system for validating inference results with automatic retry mechanism
 - **Save Modes**: Multiple output formats (divided files or single consolidated file)
 - **Progress Tracking**: Real-time progress bars and statistics for batch processing
 
@@ -138,6 +139,8 @@ python -m inference \
     --concurrency 64 \
     --max_tokens 1024 \
     --temperature 0.0 \
+    --checker json \
+    --max_check_retries 3 \
     batch \
     --input_path "/path/to/dataset.json" \
     --output_dir "/path/to/output" \
@@ -172,7 +175,7 @@ python -m inference \
 
 ### Custom Prompts
 
-You can use custom system and user prompts by providing prompt files:
+You can use custom system and user prompts by providing prompt files, and optionally enable result validation with checkers:
 
 ```bash
 python -m inference \
@@ -180,6 +183,8 @@ python -m inference \
     --model_name "Qwen/Qwen2.5-VL-3B-Instruct" \
     --system_prompt_file "/path/to/system_prompt.txt" \
     --user_prompt_file "/path/to/user_prompt.txt" \
+    --checker json \
+    --max_check_retries 3 \
     single \
     --image_path "/path/to/image.jpg" \
     --prompt "Custom prompt"
@@ -211,6 +216,8 @@ python -m inference \
 
 ### Global Parameters
 - `parser`: Parser type for result processing (optional)
+- `checker`: Checker type for result validation, e.g., "json", "default" (optional, default: "default")
+- `max_check_retries`: Maximum retry attempts when checker validation fails (optional, default: 3)
 - `system_prompt_file`: Path to system prompt file (optional)
 - `user_prompt_file`: Path to user prompt file (optional)
 
@@ -283,6 +290,12 @@ python -m inference --engine_type transformer --model_name model --batch_size 8
 python -m inference --engine_type api_chat --concurrency 10
 ```
 
+**Invalid Output Format**
+```bash
+# Use JSON checker to validate and retry on invalid outputs
+python -m inference --engine_type api_chat --checker json --max_check_retries 3
+```
+
 ### Getting Help
 
 For issues and questions:
@@ -301,6 +314,7 @@ For issues and questions:
 - **vLLM Engine**: Use larger batch sizes (8-16) for better GPU utilization
 - **API Engines**: Adjust concurrency based on API rate limits and network capacity
 - **Progress Monitoring**: Use the built-in progress tracking to monitor batch processing
+- **Result Validation**: Use `--checker json` for JSON output validation with automatic retries (up to `--max_check_retries` times)
 
 ---
 **Note**: This framework is designed for research and production use cases involving Vision Language Models. Ensure you have appropriate licenses and permissions for the models and APIs you use. 
