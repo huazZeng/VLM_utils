@@ -9,6 +9,7 @@ import os
 from typing import List, Dict, Any
 from base_inference import BaseInference
 from engine.engine_factory import InferenceEngineFactory
+from checker.base_checker import BaseChecker
 
 
 class UnifiedInference(BaseInference):
@@ -16,18 +17,27 @@ class UnifiedInference(BaseInference):
     统一推理类，继承BaseInference，支持所有类型的推理引擎
     """
     
-    def __init__(self, parser: str, engine_type: str, **engine_kwargs):
+    def __init__(self, parser: str, engine_type: str, checker: str = None, max_retries: int = 3, **engine_kwargs):
         """
         初始化统一推理器
         
         Args:
             parser: 解析器类型
             engine_type: 引擎类型，支持 "api_chat", "api_completion", "vllm_offline", "transformer"
+            checker: 检查器类型，用于验证推理结果
+            max_retries: 最大重试次数，默认为3
             **engine_kwargs: 引擎特定的初始化参数
         """
         if parser is None:
             parser = "default"
         super().__init__(parser)
+        
+        # 初始化checker
+        if checker is None:
+            checker = "default"
+        self.checker = BaseChecker.create_checker(checker)
+        self.max_retries = max_retries
+        print(f"Checker initialized: {self.checker.get_checker_name()}, max_retries: {max_retries}")
         
         # 设置系统提示词和用户提示词
         system_prompt_file = engine_kwargs.get("system_prompt_file", None)
@@ -50,9 +60,59 @@ class UnifiedInference(BaseInference):
         self.model_name = engine_kwargs.get("model_name", "default")
         print(f"Unified inference initialized with engine: {engine_type}")
     
+    def _infer_with_retry(self, image_path: str, prompt: str, system_prompt: str = None) -> str:
+        """
+        带重试机制的推理函数
+        
+        Args:
+            image_path: 图像路径
+            prompt: 用户提示文本
+            system_prompt: 系统提示文本，如果为None则使用self.system_prompt
+            
+        Returns:
+            模型输出文本
+        """
+        if system_prompt is None:
+            system_prompt = self.system_prompt
+            
+        retry_count = 0
+        last_prediction = ""
+        
+        while retry_count <= self.max_retries:
+            try:
+                result = self.engine.single_infer(
+                    image_path=image_path,
+                    system_prompt=system_prompt,
+                    user_prompt=prompt
+                )
+                
+                prediction = result["prediction"]
+                last_prediction = prediction
+                
+                # 使用checker检查结果
+                if self.checker.check(prediction):
+                    if retry_count > 0:
+                        print(f"Check passed after {retry_count} retries for {image_path}")
+                    return prediction
+                else:
+                    retry_count += 1
+                    if retry_count <= self.max_retries:
+                        print(f"Check failed for {image_path}, retrying... (attempt {retry_count}/{self.max_retries})")
+                    else:
+                        print(f"Check failed for {image_path} after {self.max_retries} retries, returning last result")
+                        return last_prediction
+                    
+            except Exception as e:
+                print(f"Error in inference for {image_path}: {e}")
+                retry_count += 1
+                if retry_count > self.max_retries:
+                    return last_prediction
+        
+        return last_prediction
+    
     def single_infer(self, image_path: str, prompt: str) -> str:
         """
-        单个推理方法
+        单个推理方法（带checker重试逻辑）
         
         Args:
             image_path: 图像路径
@@ -61,18 +121,7 @@ class UnifiedInference(BaseInference):
         Returns:
             模型输出文本
         """
-        try:
-            result = self.engine.single_infer(
-                image_path=image_path,
-                system_prompt=self.system_prompt,
-                user_prompt=prompt
-            )
-            
-            return result["prediction"]
-                
-        except Exception as e:
-            print(f"Error in single inference for {image_path}: {e}")
-            return ""
+        return self._infer_with_retry(image_path, prompt)
     
     def _process_json_batch(self, data: List[Dict], output_dir: str, save_mode: str, **kwargs) -> List[Dict]:
         """
@@ -137,11 +186,18 @@ class UnifiedInference(BaseInference):
                 system_prompts,
             )
             
-            # 处理批量推理结果
+            # 处理批量推理结果，对于check失败的进行重试
             for i, (sample_idx, batch_result) in enumerate(zip(sample_indices, batch_results)):
                 sample = data[sample_idx]
                 
                 prediction = batch_result["prediction"]
+                
+                # 使用checker检查结果，如果失败则重试
+                if not self.checker.check(prediction):
+                    print(f"Check failed for sample {sample_idx}, retrying with retry mechanism...")
+                    image_path = sample["images"][0]
+                    prediction = self._infer_with_retry(image_path, prompts[i], system_prompts[i])
+                
                 messages = sample.get("messages", [])
                 ground_truth = ""
                 
@@ -178,10 +234,10 @@ class UnifiedInference(BaseInference):
                         break
                 
                 try:
-                    prediction = self.single_infer(image_path, prompts[i])  # 使用之前提取的prompt
+                    prediction = self._infer_with_retry(image_path, prompts[i], system_prompts[i])  # 使用带重试的推理
                 except Exception as single_error:
                     prediction = ""
-                    print(f"Error in single inference for sample {sample_idx}: {single_error}")
+                    print(f"Error in inference with retry for sample {sample_idx}: {single_error}")
                 
                 result = {
                     "image_path": image_path,
@@ -217,11 +273,16 @@ class UnifiedInference(BaseInference):
                 self.system_prompt,
             )
             
-            # 处理批量推理结果
+            # 处理批量推理结果，对于check失败的进行重试
             for i, batch_result in enumerate(batch_results):
                 image_path = data[i]
                 
                 prediction = batch_result["prediction"]
+                
+                # 使用checker检查结果，如果失败则重试
+                if not self.checker.check(prediction):
+                    print(f"Check failed for {image_path}, retrying with retry mechanism...")
+                    prediction = self._infer_with_retry(image_path, default_prompt)
                 
                 result = {
                     "image_path": image_path,
@@ -237,10 +298,10 @@ class UnifiedInference(BaseInference):
             print("Falling back to single inference...")
             for i, image_path in enumerate(data):
                 try:
-                    prediction = self.single_infer(image_path, default_prompt)
+                    prediction = self._infer_with_retry(image_path, default_prompt)
                 except Exception as single_error:
                     prediction = ""
-                    print(f"Error in single inference for image {i}: {single_error}")
+                    print(f"Error in inference with retry for image {i}: {single_error}")
                 
                 result = {
                     "image_path": image_path,
@@ -322,6 +383,8 @@ def main():
     # 创建解析器
     parser = argparse.ArgumentParser(description="统一推理工具，支持多种推理引擎")
     parser.add_argument("--parser", type=str, help="解析器类型")
+    parser.add_argument("--checker", type=str, help="检查器类型（如json, default等）")
+    parser.add_argument("--max_retries", type=int, default=3, help="检查失败时的最大重试次数")
     parser.add_argument("--engine_type", type=str, required=True, 
                        choices=["api_chat", "api_completion", "vllm_offline", "transformer"], 
                        help="推理引擎类型")
@@ -389,7 +452,13 @@ def main():
         if args.mode == 'batch':
             engine_kwargs["batch_size"] = args.batch_size
 
-    inference = UnifiedInference(args.parser, args.engine_type, **engine_kwargs)
+    inference = UnifiedInference(
+        parser=args.parser,
+        engine_type=args.engine_type,
+        checker=args.checker,
+        max_retries=args.max_retries,
+        **engine_kwargs
+    )
     
     if args.mode == 'single':
         # 单个推理模式
