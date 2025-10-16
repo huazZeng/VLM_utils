@@ -492,3 +492,83 @@ def main():
 
 if __name__ == "__main__":
     main() 
+
+
+def create_inference_engine(engine_type: str, **engine_kwargs):
+    """
+    创建推理引擎的便捷函数
+
+    Args:
+        engine_type: 引擎类型，支持 "api_chat", "api_completion", "vllm_offline", "transformer"
+        **engine_kwargs: 引擎特定的初始化参数
+
+    Returns:
+        UnifiedInference: 初始化好的推理器实例
+
+    Example:
+        # 使用vllm_offline引擎
+        inference = create_inference_engine(
+            engine_type="vllm_offline",
+            model_name="Qwen/Qwen2.5-VL-3B-Instruct",
+            batch_size=16
+        )
+
+        # 使用API引擎
+        inference = create_inference_engine(
+            engine_type="api_chat",
+            base_url="http://localhost:8000/v1",
+            model_name="qwen2.5-vl-3b",
+            api_key="your_api_key"
+        )
+    """
+    return UnifiedInference(parser=None, engine_type=engine_type, **engine_kwargs)
+
+
+def simple_inference(image_path: str, prompt: str, engine_type: str, **engine_kwargs):
+    """
+    简单的单次推理函数
+
+    Args:
+        image_path: 图像文件路径
+        prompt: 提示文本
+        engine_type: 引擎类型
+        **engine_kwargs: 引擎特定的初始化参数
+
+    Returns:
+        str: 推理结果
+
+    Example:
+        result = simple_inference(
+            image_path="path/to/image.jpg",
+            prompt="Describe this image",
+            engine_type="vllm_offline",
+            model_name="Qwen/Qwen2.5-VL-3B-Instruct"
+        )
+    """
+    inference = create_inference_engine(engine_type, **engine_kwargs)
+    return inference.single_infer(image_path, prompt)
+
+
+def batch_inference(input_path: str, output_dir: str, engine_type: str, 
+                   save_mode: str = "all", **engine_kwargs):
+    """
+    批量推理函数
+
+    Args:
+        input_path: 输入路径（JSON文件或文件夹）
+        output_dir: 输出目录
+        engine_type: 引擎类型
+        save_mode: 保存模式，"divided"或"all"
+        **engine_kwargs: 引擎特定的初始化参数
+
+    Example:
+        batch_inference(
+            input_path="path/to/data.json",
+            output_dir="path/to/output",
+            engine_type="vllm_offline",
+            model_name="Qwen/Qwen2.5-VL-3B-Instruct",
+            save_mode="all"
+        )
+    """
+    inference = create_inference_engine(engine_type, **engine_kwargs)
+    inference.batch_infer(input_path, output_dir, save_mode)
