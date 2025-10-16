@@ -20,24 +20,16 @@ class JSONChecker(BaseChecker):
         检查数据是否为有效的JSON格式
         
         Args:
-            data: 待检查的数据（通常是字符串）
+            data: 待检查的数据（字符串）
             **kwargs: 额外的检查参数
             
         Returns:
             bool: 如果是有效JSON格式返回True，否则返回False
         """
-        # 如果data已经是dict或list，认为是有效的JSON对象
-        if isinstance(data, (dict, list)):
+        # 传进来的肯定是字符串
+        try:
+            json.loads(data)
             return True
-        
-        # 如果是字符串，尝试解析
-        if isinstance(data, str):
-            try:
-                json.loads(data)
-                return True
-            except (json.JSONDecodeError, ValueError):
-                return False
-        
-        # 其他类型返回False
-        return False
+        except (json.JSONDecodeError, ValueError):
+            return False
 

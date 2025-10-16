@@ -2,6 +2,7 @@
 """
 vLLM API推理引擎实现
 基于vLLM服务器的API调用推理（纯异步实现）
+每个引擎实例拥有独立的event loop
 """
 
 import asyncio
@@ -20,6 +21,7 @@ class APICompletionEngine(InferenceEngineBase):
     """
     vLLM API推理引擎
     纯异步实现，支持completion接口
+    每个实例拥有独立的event loop，适用于单线程场景
     """
 
     def __init__(self, base_url: str, model_name: str, api_key: str = "EMPTY", **kwargs):
@@ -30,13 +32,20 @@ class APICompletionEngine(InferenceEngineBase):
         self.concurrency = kwargs.get("concurrency", 64)
         self.max_tokens = kwargs.get("max_tokens", 1024)
         self.temperature = kwargs.get("temperature", 0.0)
+        
+        # 为这个引擎实例创建专属的event loop
+        self.loop = asyncio.new_event_loop()
+        
+        # 创建API客户端
         self.client = OpenAIChatClient(
             base_url=self.base_url,
             api_key=self.api_key,
             model_name=self.model_name
         )
+        
         print(f"API Completion client initialized with model: {model_name}")
         print(f"API Completion client initialized with base_url: {base_url}")
+        print(f"Dedicated event loop created for this engine instance")
 
     def image_to_data_uri(self, image_path: str) -> str:
         """将图像转换为data URI格式"""
@@ -94,7 +103,19 @@ class APICompletionEngine(InferenceEngineBase):
             raise Exception(f"Preprocessing failed: {e}")
 
     def single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
-        return asyncio.run(self._single_infer(image_path, system_prompt, user_prompt))
+        """
+        同步封装的单个推理方法
+        使用实例专属的event loop运行异步推理
+        
+        Args:
+            image_path: 图像路径
+            system_prompt: 系统提示词
+            user_prompt: 用户提示词
+            
+        Returns:
+            推理结果字典
+        """
+        return self.loop.run_until_complete(self._single_infer(image_path, system_prompt, user_prompt))
     
     async def _single_infer(self, image_path: str, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
@@ -128,12 +149,21 @@ class APICompletionEngine(InferenceEngineBase):
             )
 
     def batch_infer(self, *args) -> List[Dict[str, Any]]:
-        return asyncio.run(self._batch_infer(*args))
+        """
+        同步封装的批量推理方法
+        使用实例专属的event loop运行异步批量推理
+        
+        Returns:
+            推理结果列表
+        """
+        return self.loop.run_until_complete(self._batch_infer(*args))
     
-    # Replace the batch inference completion loop with this improved version
     async def _batch_infer(self, *args) -> List[Dict[str, Any]]:
         """
         批量推理的异步方法
+        
+        Returns:
+            推理结果列表
         """
         from utils.data_processor import _prepare_samples
 
@@ -166,3 +196,14 @@ class APICompletionEngine(InferenceEngineBase):
             processed_results[idx] = r
 
         return processed_results
+    
+    def __del__(self):
+        """
+        析构函数，清理event loop资源
+        """
+        if hasattr(self, 'loop') and self.loop is not None:
+            try:
+                if not self.loop.is_closed():
+                    self.loop.close()
+            except Exception:
+                pass  # 忽略清理时的错误
